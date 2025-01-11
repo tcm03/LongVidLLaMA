@@ -11,7 +11,7 @@ BATCH_SIZE=1  # Reduced batch size
 LEARNING_RATE=1e-4  # Increased learning rate
 MAX_LENGTH=8192
 
-PYTHONFAULTHANDLER=1 CUDA_VISIBLE_DEVICES=0 python \
+CUDA_LAUNCH_BLOCKING=1 PYTHONFAULTHANDLER=1 CUDA_VISIBLE_DEVICES=0 python \
 longvu/entube_finetune.py \
 --input_model_filename $PREV_STAGE_CHECKPOINT \
 --output_model_filename $OUTPUT_MODEL_DIR \
