@@ -28,3 +28,4 @@ protobuf
 iopath
 tensorboard
 datasets
+pandas
