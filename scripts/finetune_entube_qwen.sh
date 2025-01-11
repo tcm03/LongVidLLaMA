@@ -7,7 +7,7 @@ DATA_PATH="/content/drive/MyDrive/Thesis/EnTube"
 
 # Hyperparameters
 NUM_EPOCHS=10
-BATCH_SIZE=4  # Reduced batch size
+BATCH_SIZE=1  # Reduced batch size
 LEARNING_RATE=1e-4  # Increased learning rate
 MAX_LENGTH=8192
 
