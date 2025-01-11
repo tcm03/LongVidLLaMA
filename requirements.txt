@@ -27,3 +27,4 @@ deepspeed==0.12.2
 protobuf
 iopath
 tensorboard
+datasets
