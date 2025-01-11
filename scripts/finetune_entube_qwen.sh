@@ -3,7 +3,7 @@
 # Paths to model and data
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_qwen2"
 OUTPUT_MODEL_DIR="./results"
-DATA_PATH="./data/entube/entube.json"
+DATA_PATH="/content/drive/MyDrive/Thesis/EnTube"
 
 # Hyperparameters
 NUM_EPOCHS=10
