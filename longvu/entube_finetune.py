@@ -1,3 +1,4 @@
+print("@tcm: Before importing libraries")
 import os
 import numpy as np
 import pandas as pd
@@ -8,6 +9,7 @@ from transformers import Trainer, TrainingArguments
 from longvu.builder import load_pretrained_model
 from longvu.mm_datautils import process_images
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score
+print("@tcm: Finished importing libraries")
 
 parser = HfArgumentParser((TrainingArguments,))
 parser.add_argument("--input_model_filename", type=str, required=True)
