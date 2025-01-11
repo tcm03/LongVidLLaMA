@@ -12,7 +12,7 @@ LEARNING_RATE=1e-4  # Increased learning rate
 MAX_LENGTH=8192
 
 CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 \
-train_entube.py \
+longvu/entube_finetune.py \
 --input_model_filename $PREV_STAGE_CHECKPOINT \
 --output_model_filename $OUTPUT_MODEL_DIR \
 --data_path $DATA_PATH \
