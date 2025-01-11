@@ -113,7 +113,7 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     metric_for_best_model="f1",
     report_to="tensorboard",
-    fp16=False,
+    fp16=True,
 )
 
 # Step 5: Define metrics for evaluation
