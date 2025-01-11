@@ -27,7 +27,7 @@ from longvu.constants import (
 )
 
 from longvu.language_model.cambrian_llama import CambrianLlamaForCausalLM
-from longvu.language_model.cambrian_qwen import CambrianQwenForCausalLM
+from longvu.language_model.cambrian_qwen import CambrianQwenForCausalLM, CambrianQwenForSequenceClassification
 
 from transformers import (
     AutoConfig,
@@ -156,11 +156,13 @@ def load_pretrained_model(
         else:
             if "qwen" in model_name.lower():
                 tokenizer = AutoTokenizer.from_pretrained(model_path)
-                model = CambrianQwenForCausalLM.from_pretrained(
+                # model = CambrianQwenForCausalLM.from_pretrained(
+                #     model_path, low_cpu_mem_usage=True, **kwargs
+                # )
+                model = CambrianQwenForSequenceClassification.from_pretrained(
                     model_path, low_cpu_mem_usage=True, **kwargs
                 )
             else:
-                print(f"Loading Cambrian from {model_path}")
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
                 model = CambrianLlamaForCausalLM.from_pretrained(
                     model_path, low_cpu_mem_usage=True, **kwargs

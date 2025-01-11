@@ -20,7 +20,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 
-from transformers import AutoConfig, AutoModelForCausalLM
+from transformers import AutoConfig, AutoModelForCausalLM, AutoModelForSequenceClassification
 from transformers.cache_utils import Cache, DynamicCache
 from transformers.generation.utils import GenerateOutput
 
@@ -34,7 +34,7 @@ from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
 
 IS_XLA_AVAILABLE = False
 
-from transformers import Qwen2Config, Qwen2ForCausalLM, Qwen2Model
+from transformers import Qwen2Config, Qwen2ForCausalLM, Qwen2Model, Qwen2ForSequenceClassification
 
 logger = logging.get_logger(__name__)
 
@@ -469,3 +469,195 @@ class CambrianQwenForCausalLM(Qwen2ForCausalLM, CambrianMetaForCausalLM):
 
 AutoConfig.register("cambrian_qwen", CambrianConfig)
 AutoModelForCausalLM.register(CambrianConfig, CambrianQwenForCausalLM)
+
+
+class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, CambrianMetaForCausalLM):
+    config_class = CambrianConfig
+
+    def __init__(self, config, num_labels=3):
+        # super(Qwen2ForCausalLM, self).__init__(config)
+        Qwen2ForSequenceClassification.__init__(self, config)
+        config.model_type = "cambrian_qwen"
+        config.rope_scaling = None
+
+        self.model = CambrianQwenModel(config)
+        # self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
+        self.num_labels = num_labels
+        self.cls_head = nn.Linear(config.hidden_size, self.num_labels, bias=False)
+
+        # Freeze all parameters except the classification head
+        for param in self.model.parameters():
+            param.requires_grad = False
+        # Initialize weights and apply final processing
+        self.post_init()
+
+    def get_model(self):
+        return self.model
+
+    def forward(
+        self,
+        # pyre-fixme[9]: input_ids has type `LongTensor`; used as `None`.
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        images: Optional[torch.FloatTensor] = None,
+        image_aux_attention_masks_list: Optional[List[torch.Tensor]] = None,
+        image_sizes: Optional[List[List[int]]] = None,
+        return_dict: Optional[bool] = None,
+        modalities: Optional[List[str]] = ["image"],
+        dpo_forward: Optional[bool] = False,
+        cache_position=None,
+    ) -> Union[Tuple, CausalLMOutputWithPast]:
+
+        input_image_features = None
+        highres_image_features = None
+        frame_split_sizes = None
+
+        if inputs_embeds is None:
+            (
+                input_ids,
+                position_ids,
+                attention_mask,
+                past_key_values,
+                inputs_embeds,
+                labels,
+                vision_tower_aux_feature_list,
+                vision_tower_aux_attention_masks_list,
+                final_vision_feature_size,
+                global_context_feature,
+            ) = self.prepare_inputs_labels_for_multimodal(
+                input_ids,
+                position_ids,
+                attention_mask,
+                past_key_values,
+                labels,
+                images,
+                image_aux_attention_masks_list,
+                image_sizes,
+            )
+
+        if dpo_forward:
+            # pyre-fixme[29]: `CambrianQwenModel` is not a function.
+            outputs = self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                position_ids=position_ids,
+                past_key_values=past_key_values,
+                inputs_embeds=inputs_embeds,
+                use_cache=use_cache,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+                return_dict=return_dict,
+            )
+
+            hidden_states = outputs[0]
+            logits = self.lm_head(hidden_states)
+            return logits, labels
+
+        else:
+            if hasattr(self, "vision_tower_aux_feature_list"):
+                # pyre-fixme[29]: `CambrianQwenModel` is not a function.
+                outputs = self.model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    position_ids=position_ids,
+                    past_key_values=past_key_values,
+                    inputs_embeds=inputs_embeds,
+                    use_cache=use_cache,
+                    output_attentions=output_attentions,
+                    output_hidden_states=output_hidden_states,
+                    return_dict=return_dict,
+                    vision_tower_aux_feature_list=(
+                        # pyre-fixme[61]: `vision_tower_aux_feature_list` is
+                        #  undefined, or not always defined.
+                        vision_tower_aux_feature_list
+                        if inputs_embeds is None
+                        # pyre-fixme[16]: `CambrianQwenForCausalLM` has no attribute
+                        #  `vision_tower_aux_feature_list`.
+                        else self.vision_tower_aux_feature_list
+                    ),
+                    vision_tower_aux_attention_masks_list=(
+                        # pyre-fixme[61]: `vision_tower_aux_attention_masks_list` is
+                        #  undefined, or not always defined.
+                        vision_tower_aux_attention_masks_list
+                        if inputs_embeds is None
+                        # pyre-fixme[16]: `CambrianQwenForCausalLM` has no attribute
+                        #  `vision_tower_aux_attention_masks_list`.
+                        else self.vision_tower_aux_attention_masks_list
+                    ),
+                    final_vision_feature_size=(
+                        # pyre-fixme[61]: `final_vision_feature_size` is undefined,
+                        #  or not always defined.
+                        final_vision_feature_size
+                        if inputs_embeds is None
+                        # pyre-fixme[16]: `CambrianQwenForCausalLM` has no attribute
+                        #  `final_vision_feature_size`.
+                        else self.final_vision_feature_size
+                    ),
+                    global_context_feature=(
+                        # pyre-fixme[61]: `global_context_feature` is undefined, or
+                        #  not always defined.
+                        global_context_feature
+                        if inputs_embeds is None
+                        # pyre-fixme[16]: `CambrianQwenForCausalLM` has no attribute
+                        #  `global_context_feature`.
+                        else self.global_context_feature
+                    ),
+                )
+            else:
+                # pyre-fixme[29]: `CambrianQwenModel` is not a function.
+                outputs = self.model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    position_ids=position_ids,
+                    past_key_values=past_key_values,
+                    inputs_embeds=inputs_embeds,
+                    use_cache=use_cache,
+                    output_attentions=output_attentions,
+                    output_hidden_states=output_hidden_states,
+                    return_dict=return_dict,
+                    # final_vision_feature_size=final_vision_feature_size,
+                )
+
+            hidden_states = outputs[0]  # Extract the last hidden state
+            logits = self.cls_head(hidden_states[:, 0, :])  # Use the [CLS] token representation
+
+            loss = None
+            if labels is not None:
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+
+            if not return_dict:
+                return (loss, logits) if loss is not None else logits
+
+            return SequenceClassifierOutput(
+                loss=loss,
+                logits=logits,
+                hidden_states=outputs.hidden_states,
+                attentions=outputs.attentions,
+            )
+
+    @torch.no_grad()
+    def generate(
+        self,
+        inputs: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        **kwargs,
+    ) -> torch.Tensor:
+        # Directly forward the inputs through the model to get logits
+        outputs = self.forward(input_ids=inputs, attention_mask=attention_mask, return_dict=True)
+        logits = outputs.logits
+        return logits
+
+    def prepare_inputs_for_generation(self, input_ids, **kwargs):
+        attention_mask = kwargs.get("attention_mask", None)
+        return {"input_ids": input_ids, "attention_mask": attention_mask}
+
+# AutoConfig.register("cambrian_qwen", CambrianConfig)
+AutoModelForSequenceClassification.register(CambrianConfig, CambrianQwenForSequenceClassification)
