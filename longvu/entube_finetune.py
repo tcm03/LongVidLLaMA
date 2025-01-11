@@ -75,6 +75,7 @@ def sample_and_preprocess_frames(df, image_processor, model_config, fps=1):
 csv_path = "/content/drive/MyDrive/Thesis/EnTube/EnTube.csv"
 video_root = "/content/drive/MyDrive/Thesis/EnTube"
 
+print(f'@tcm: In entube_finetune.py: load dataset')
 # Load CSV and prepare video paths
 df = load_entube_csv(csv_path, video_root)
 
