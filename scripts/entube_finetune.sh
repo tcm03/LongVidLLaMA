@@ -9,6 +9,7 @@ longvu/finetune.py \
 --output_dir "/tmp/longvu/" \
 --input_model_filename $PREV_STAGE_CHECKPOINT \
 --output_model_filename "./checkpoints/longvu_entube/" \
+--model_name_or_path "longvu_qwen2" \
 --data_path $PATH_TO_CSV \
 --image_folder $PATH_TO_FOLDER \
 --model_max_length 8192 \
