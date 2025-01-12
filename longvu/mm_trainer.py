@@ -73,10 +73,13 @@ def get_length_grouped_indices(
 def get_modality_length_grouped_indices(
     lengths, batch_size, world_size, generator=None
 ):
+    print()
+    print(f'@tcm: In get_modality_length_grouped_indices()')
     # We need to use torch for the random part as a distributed sampler will set the random seed for torch.
     assert all(l != 0 for l in lengths), "Should not have zero length."
     if all(l > 0 for l in lengths) or all(l < 0 for l in lengths):
         # all samples are in the same modality
+        print(f'@tcm: In get_modality_length_grouped_indices(): all samples are in the same modality')
         return get_length_grouped_indices(
             lengths, batch_size, world_size, generator=generator
         )
