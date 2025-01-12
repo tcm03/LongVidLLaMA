@@ -453,10 +453,10 @@ class LazySupervisedDataset(Dataset):
         # for sample in self.list_data_dict:
         #     img_tokens = (
         #         self.data_args.image_token_len if self._has_image(sample) else 0
-        #     )
+        #     ) # number of tokens per image
         #     cur_len = sum(
         #         len(conv["value"].split()) for conv in sample["conversations"]
-        #     )
+        #     ) # number of tokens in text prompts of "human" and "gpt" combined (see VideoChat2 dataset)
         #     self.length_list.append(cur_len + img_tokens)
         #     modality_len = cur_len if "image" in sample else -cur_len
         #     self.modality_length_list.append(modality_len)
@@ -779,8 +779,11 @@ def make_supervised_data_module(
 
     data_collator = DataCollatorForSupervisedDataset(**data_collator_kwargs)  # pyre-fixme
 
+    # return dict(
+    #     train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator
+    # )
     return dict(
-        train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator
+        train_dataset=train_dataset, eval_dataset=train_dataset, data_collator=data_collator
     )
 
 
