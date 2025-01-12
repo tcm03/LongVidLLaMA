@@ -25,6 +25,8 @@ import transformers
 
 from decord import cpu, VideoReader
 
+import sys
+sys.path.append('../longvu')
 from longvu import conversation as conversation_lib
 
 from longvu.constants import (
