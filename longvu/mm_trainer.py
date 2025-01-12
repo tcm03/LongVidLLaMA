@@ -48,6 +48,7 @@ def split_to_even_chunks(indices, lengths, num_chunks):
 def get_length_grouped_indices(
     lengths, batch_size, world_size, generator=None, merge=True
 ):
+    print(f'@tcm: In get_length_grouped_indices()')
     # We need to use torch for the random part as a distributed sampler will set the random seed for torch.
     indices = torch.randperm(len(lengths), generator=generator)
     megabatch_size = world_size * batch_size

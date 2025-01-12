@@ -453,10 +453,10 @@ class LazySupervisedDataset(Dataset):
         # for sample in self.list_data_dict:
         #     img_tokens = (
         #         self.data_args.image_token_len if self._has_image(sample) else 0
-        #     ) # number of tokens per image
+        #     ) # @tcm: number of tokens per image
         #     cur_len = sum(
         #         len(conv["value"].split()) for conv in sample["conversations"]
-        #     ) # number of tokens in text prompts of "human" and "gpt" combined (see VideoChat2 dataset)
+        #     ) # @tcm: number of tokens in text prompts of "human" and "gpt" combined (see VideoChat2 dataset)
         #     self.length_list.append(cur_len + img_tokens)
         #     modality_len = cur_len if "image" in sample else -cur_len
         #     self.modality_length_list.append(modality_len)
