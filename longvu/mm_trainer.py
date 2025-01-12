@@ -17,9 +17,15 @@ from transformers.trainer import ALL_LAYERNORM_LAYERS, get_parameter_names, has_
 # pyre-fixme[2]: Parameter must be annotated.
 def split_to_even_chunks(indices, lengths, num_chunks):
     """
-    Split a list of indices into `chunks` chunks of roughly equal lengths.
-    """
+    Purpose:
+    This function splits the list of indices into num_chunks such that each chunk has a roughly equal cumulative length.
 
+    How it works:
+
+    If the total number of indices cannot be evenly divided by num_chunks, it uses a round-robin approach to distribute the indices.
+    It keeps track of the cumulative length of each chunk (chunks_lengths) and assigns new indices to the chunk with the smallest total length to ensure balanced distribution.
+    """
+    
     if len(indices) % num_chunks != 0:
         return [indices[i::num_chunks] for i in range(num_chunks)]
 
