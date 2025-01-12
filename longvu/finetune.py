@@ -27,6 +27,8 @@ from decord import cpu, VideoReader
 
 import sys
 sys.path.append('../longvu')
+print(f'Current directory: {os.getcwd()}')
+print(sys.path)
 from longvu import conversation as conversation_lib
 
 from longvu.constants import (
