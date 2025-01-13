@@ -745,7 +745,8 @@ class DataCollatorForSupervisedDataset(object):
         #     print(f'@tcm: In DataCollatorForSupervisedDataset, new_input_ids.shape: {new_input_ids.shape}')
         batch = dict(
             # input_ids=new_input_ids,
-            labels=new_labels,
+            # labels=new_labels,
+            labels=labels,
             # attention_mask=new_attention_mask,
             # position_ids=new_position_ids,
             # image_aux_attention_masks_list=im_aux_attention_masks_list,
