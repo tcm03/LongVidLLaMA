@@ -4,7 +4,7 @@ PATH_TO_CSV="/content/drive/MyDrive/Thesis/EnTube/EnTube.csv"
 PATH_TO_FOLDER="/content/drive/MyDrive/Thesis/EnTube"
 VERSION="qwen"
 
-CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=1 --nnodes=1 \
+CUDA_LAUNCH_BLOCKING=1 PYTHONFAULTHANDLER=1 CUDA_VISIBLE_DEVICES=0 python \
 longvu/finetune.py \
 --output_dir "/tmp/longvu/" \
 --input_model_filename $PREV_STAGE_CHECKPOINT \

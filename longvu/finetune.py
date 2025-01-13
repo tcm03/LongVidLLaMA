@@ -698,8 +698,6 @@ class DataCollatorForSupervisedDataset(object):
         # labels = torch.stack(labels)
         labels = torch.Tensor(labels)
         print(f'@tcm: In DataCollatorForSupervisedDataset: labels.shape: {labels.shape}')
-        if len(labels.shape) == 2:
-            labels = labels.squeeze(0)
         # attention_mask = input_ids.ne(self.tokenizer.pad_token_id)  # pyre-fixme
         # insert dummy image
         # for i in range(len(input_ids)):
