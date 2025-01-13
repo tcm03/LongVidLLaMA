@@ -682,17 +682,17 @@ class DataCollatorForSupervisedDataset(object):
             #     )
             #     for t in input_ids
             # ]
-            print(f'@tcm: In DataCollatorForSupervisedDataset: labels {type(labels)}')
-            labels = [
-                (
-                    t[:max_length]
-                    if t.shape[0] >= max_length
-                    else torch.nn.functional.pad(
-                        t, (0, max_length - t.shape[0]), "constant", IGNORE_INDEX
-                    )
-                )
-                for t in labels
-            ]
+            print(f'@tcm: In DataCollatorForSupervisedDataset: labels {len(labels)}')
+            # labels = [
+            #     (
+            #         t[:max_length]
+            #         if t.shape[0] >= max_length
+            #         else torch.nn.functional.pad(
+            #             t, (0, max_length - t.shape[0]), "constant", IGNORE_INDEX
+            #         )
+            #     )
+            #     for t in labels
+            # ]
 
         # input_ids = torch.stack(input_ids)
         labels = torch.stack(labels)
