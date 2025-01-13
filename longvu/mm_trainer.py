@@ -51,6 +51,7 @@ def get_length_grouped_indices(
     print(f'@tcm: In get_length_grouped_indices()')
     # We need to use torch for the random part as a distributed sampler will set the random seed for torch.
     indices = torch.randperm(len(lengths), generator=generator)
+    print(f'@tcm: In get_length_grouped_indices(): lengths={lengths}, batch_size={batch_size}, world_size={world_size}, generator={generator}, merge={merge}')
     megabatch_size = world_size * batch_size
     megabatches = [
         indices[i : i + megabatch_size].tolist()
@@ -150,7 +151,9 @@ class LengthGroupedSampler(Sampler):
         return len(self.lengths)
 
     def __iter__(self):
+        print()
         print(f'@tcm: In LengthGroupedSampler.__iter__()')
+        print(f'@tcm: In LengthGroupedSampler.__iter__(): self.lengths={self.lengths}, self.batch_size={self.batch_size}, self.world_size={self.world_size}, self.group_by_modality={self.group_by_modality}')
         if self.group_by_modality:
             indices = get_modality_length_grouped_indices(
                 self.lengths, self.batch_size, self.world_size, generator=self.generator
@@ -210,6 +213,7 @@ class LLaVATrainer(Trainer):
 
         # pyre-fixme[16]: `LLaVATrainer` has no attribute `args`.
         if self.args.group_by_modality_length:
+            print(f'@tcm: In _get_train_sampler(): group_by_modality_length true')
             lengths = self.train_dataset.modality_lengths
             return LengthGroupedSampler(
                 # self.args.train_batch_size * self.args.gradient_accumulation_steps, # TODO: seems that we should not have gradient_accumulation_steps
