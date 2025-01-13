@@ -447,8 +447,8 @@ class LazySupervisedDataset(Dataset):
             # Return cached values if already computed
             return self.length_list, self.modality_length_list  # pyre-fixme
 
-        self.length_list = []
-        self.modality_length_list = []
+        self.length_list = [1]
+        self.modality_length_list = [1]
         # @tcm: EnTube data frame from csv
         # for sample in self.list_data_dict:
         #     img_tokens = (
