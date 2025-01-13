@@ -323,6 +323,10 @@ def preprocess_multimodal(sources: Sequence[str], data_args) -> Dict:
         # pyre-fixme[7]: Expected `Dict[typing.Any, typing.Any]` but got
         #  `Sequence[str]`.
         return sources
+        
+    # DEFAULT_IMAGE_TOKEN = "<image>"
+    # DEFAULT_IM_START_TOKEN = "<im_start>"
+    # DEFAULT_IM_END_TOKEN = "<im_end>"
 
     for source in sources:
         for sentence in source:

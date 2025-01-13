@@ -576,20 +576,21 @@ class LazySupervisedDataset(Dataset):
             image_aux_list.append(image_aux)
 
         # @tcm: I'm not quite sure about this!
-        sources = preprocess_multimodal(
-            copy.deepcopy([e["conversations"] for e in sources]), self.data_args
-        )
+        # sources = preprocess_multimodal(
+        #     copy.deepcopy([e["conversations"] for e in sources]), self.data_args
+        # )
         print(f'@tcm: In LazySupervisedDataset::__getitem__(): After preprocess_multimodal(): sources: {sources}')
         
-        data_dict = preprocess(sources, self.tokenizer, has_image=has_image)  # pyre-fixme
+        # data_dict = preprocess(sources, self.tokenizer, has_image=has_image)  # pyre-fixme
+        data_dict = dict()
         if isinstance(i, int):
             # data_dict = dict(
             #     input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0]
             # )
             data_dict = dict(
-                input_ids=data_dict["input_ids"][0], labels=dat["engagement_rate_label"]
+                labels=dat["engagement_rate_label"]
             )
-            print(f'@tcm: In LazySupervisedDataset::__getitem__(): After preprocess(): data_dict.input_ids: {data_dict.input_ids}')
+            # print(f'@tcm: In LazySupervisedDataset::__getitem__(): After preprocess(): data_dict.input_ids: {data_dict.input_ids}')
         if (data_dict["labels"] != IGNORE_INDEX).sum() == 0:
             return self.__getitem__(0)
         # image exist in the data
