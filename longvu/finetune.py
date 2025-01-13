@@ -586,6 +586,7 @@ class LazySupervisedDataset(Dataset):
             data_dict = dict(
                 input_ids=data_dict["input_ids"][0], labels=dat["engagement_rate_label"]
             )
+            print(f'@tcm: In LazySupervisedDataset: After preprocess(): data_dict.input_ids: {data_dict.input_ids}')
         if (data_dict["labels"] != IGNORE_INDEX).sum() == 0:
             return self.__getitem__(0)
         # image exist in the data
@@ -711,6 +712,10 @@ class DataCollatorForSupervisedDataset(object):
                 ]
                 cur_attention_mask_tmp[image_position] = False
                 attention_mask[i] = cur_attention_mask_tmp
+        if input_ids is None:
+            print(f'@tcm: In DataCollatorForSupervisedDataset, input_ids is None')
+        else:
+            print(f'@tcm: In DataCollatorForSupervisedDataset, input_ids.shape: {input_ids.shape}')
         image_sizes = [instance["image_size"] for instance in instances]
         (
             new_input_ids,
@@ -727,6 +732,10 @@ class DataCollatorForSupervisedDataset(object):
             image_aux_token_len_list,
             max_length,
         )
+        if new_input_ids is None:
+            print(f'@tcm: In DataCollatorForSupervisedDataset, new_input_ids is None')
+        else:
+            print(f'@tcm: In DataCollatorForSupervisedDataset, new_input_ids.shape: {new_input_ids.shape}')
         batch = dict(
             input_ids=new_input_ids,
             labels=new_labels,
