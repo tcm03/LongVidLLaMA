@@ -150,6 +150,7 @@ class LengthGroupedSampler(Sampler):
         return len(self.lengths)
 
     def __iter__(self):
+        print(f'@tcm: In LengthGroupedSampler.__iter__()')
         if self.group_by_modality:
             indices = get_modality_length_grouped_indices(
                 self.lengths, self.batch_size, self.world_size, generator=self.generator
