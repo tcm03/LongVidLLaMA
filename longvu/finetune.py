@@ -682,6 +682,7 @@ class DataCollatorForSupervisedDataset(object):
             #     )
             #     for t in input_ids
             # ]
+            print(f'@tcm: In DataCollatorForSupervisedDataset: labels {type(labels)}')
             labels = [
                 (
                     t[:max_length]
