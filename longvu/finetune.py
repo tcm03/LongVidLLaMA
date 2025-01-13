@@ -495,12 +495,14 @@ class LazySupervisedDataset(Dataset):
         # sources = self.list_data_dict[i]
         sources = self.list_data_frame.iloc[i]
         dat = sources
+        print(f'@tcm: In LazySupervisedDataset::__getitem__(): dataframe record i: {dat}')
         if isinstance(i, int):
             sources = [sources]
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
         # has_image = self._has_image(dat)
         has_image = True # @tcm: For EnTube dataset, all samples have images, although quite unsure
         video_path = dat["video_path"]
+        print(f'@tcm: In LazySupervisedDataset::__getitem__(): video_path={video_path}')
         processor_aux_list = self.data_args.image_processor_aux_list
         if os.path.exists(video_path):
             try:
@@ -577,6 +579,7 @@ class LazySupervisedDataset(Dataset):
         sources = preprocess_multimodal(
             copy.deepcopy([e["conversations"] for e in sources]), self.data_args
         )
+        print(f'@tcm: In LazySupervisedDataset::__getitem__(): After preprocess_multimodal(): sources: {sources}')
         
         data_dict = preprocess(sources, self.tokenizer, has_image=has_image)  # pyre-fixme
         if isinstance(i, int):
@@ -586,7 +589,7 @@ class LazySupervisedDataset(Dataset):
             data_dict = dict(
                 input_ids=data_dict["input_ids"][0], labels=dat["engagement_rate_label"]
             )
-            print(f'@tcm: In LazySupervisedDataset: After preprocess(): data_dict.input_ids: {data_dict.input_ids}')
+            print(f'@tcm: In LazySupervisedDataset::__getitem__(): After preprocess(): data_dict.input_ids: {data_dict.input_ids}')
         if (data_dict["labels"] != IGNORE_INDEX).sum() == 0:
             return self.__getitem__(0)
         # image exist in the data
@@ -788,11 +791,8 @@ def make_supervised_data_module(
 
     data_collator = DataCollatorForSupervisedDataset(**data_collator_kwargs)  # pyre-fixme
 
-    # return dict(
-    #     train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator
-    # )
     return dict(
-        train_dataset=train_dataset, eval_dataset=train_dataset, data_collator=data_collator
+        train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator
     )
 
 
