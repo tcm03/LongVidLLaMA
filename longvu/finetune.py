@@ -695,7 +695,8 @@ class DataCollatorForSupervisedDataset(object):
             # ]
 
         # input_ids = torch.stack(input_ids)
-        labels = torch.stack(labels)
+        # labels = torch.stack(labels)
+        labels = torch.Tensor(labels)
         # attention_mask = input_ids.ne(self.tokenizer.pad_token_id)  # pyre-fixme
         # insert dummy image
         # for i in range(len(input_ids)):
