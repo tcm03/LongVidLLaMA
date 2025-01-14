@@ -485,6 +485,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
         # self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
         self.num_labels = num_labels
         self.cls_head = nn.Linear(config.hidden_size, self.num_labels, bias=False)
+        print(f'@tcm: In CambrianQwenForSequenceClassification.__init__(): cls_head.requires_grad: {self.cls_head.requires_grad}')
 
         # Freeze all parameters except the classification head
         for param in self.model.parameters():
