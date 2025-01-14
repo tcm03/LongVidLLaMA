@@ -1214,9 +1214,9 @@ def train() -> None:
     # https://github.com/pytorch/pytorch/issues/100945#issuecomment-1540469987
     # Module's parameters wrapped by FullyShardedDataParallel must have same requires_grad for use_orig_params=False
     # When fine-tuning just a head on top of LLM, must set use_orig_params=True
-    os.environ[f"FSDP_USE_ORIG_PARAMS"] = "false"
+    os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
     # pyre-fixme[16]: `DataClass` has no attribute `fsdp_config`.
-    training_args.fsdp_config["use_orig_params"] = False
+    training_args.fsdp_config["use_orig_params"] = True
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
 
     callbacks = []
