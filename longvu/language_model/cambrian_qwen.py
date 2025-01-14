@@ -636,6 +636,9 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
             if not return_dict:
                 return (loss, logits) if loss is not None else logits
 
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): loss.shape: {loss.shape}')
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): logits.shape: {logits.shape}')
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): outputs.hidden_states.shape: {outputs.hidden_states.shape}')
             return SequenceClassifierOutput(
                 loss=loss,
                 logits=logits,
