@@ -1,6 +1,6 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_qwen2"
-PATH_TO_CSV="/content/drive/MyDrive/Thesis/EnTube/EnTube.csv"
+PATH_TO_JSON="/content/drive/MyDrive/Thesis/EnTube/EnTube.json"
 PATH_TO_FOLDER="/content/drive/MyDrive/Thesis/EnTube"
 VERSION="qwen"
 
@@ -10,7 +10,7 @@ longvu/finetune.py \
 --input_model_filename $PREV_STAGE_CHECKPOINT \
 --output_model_filename "./checkpoints/longvu_entube/" \
 --model_name_or_path "longvu_qwen2" \
---data_path $PATH_TO_CSV \
+--data_path $PATH_TO_JSON \
 --image_folder $PATH_TO_FOLDER \
 --model_max_length 8192 \
 --fp16 False \
