@@ -577,7 +577,7 @@ class LazySupervisedDataset(Dataset):
         if hasattr(self, "length_list") and hasattr(self, "modality_length_list"):
             # Return cached values if already computed
             return self.length_list, self.modality_length_list  # pyre-fixme
-
+    
         self.length_list = []
         self.modality_length_list = []
         for sample in self.list_data_dict:
@@ -1211,9 +1211,9 @@ def train() -> None:
 
     model = convert_bn_to_float(model)
 
-    os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
+    os.environ[f"FSDP_USE_ORIG_PARAMS"] = "false"
     # pyre-fixme[16]: `DataClass` has no attribute `fsdp_config`.
-    training_args.fsdp_config["use_orig_params"] = True
+    training_args.fsdp_config["use_orig_params"] = False
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
 
     callbacks = []
