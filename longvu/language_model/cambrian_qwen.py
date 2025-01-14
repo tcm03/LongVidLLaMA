@@ -514,7 +514,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
         dpo_forward: Optional[bool] = False,
         cache_position=None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
-
+        print(f'@tcm: In CambrianQwenForSequenceClassification.forward()')
         input_image_features = None
         highres_image_features = None
         frame_split_sizes = None
