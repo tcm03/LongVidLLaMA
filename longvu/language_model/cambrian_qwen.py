@@ -476,6 +476,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
 
     def __init__(self, config, num_labels=3):
         # super(Qwen2ForCausalLM, self).__init__(config)
+        print(f'@tcm: In CambrianQwenForSequenceClassification.__init__()')
         Qwen2ForSequenceClassification.__init__(self, config)
         config.model_type = "cambrian_qwen"
         config.rope_scaling = None
