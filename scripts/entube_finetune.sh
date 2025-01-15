@@ -14,7 +14,7 @@ longvu/finetune.py \
 --image_folder $PATH_TO_FOLDER \
 --model_max_length 8192 \
 --fp16 False \
---bf16 False \
+--bf16 True \
 --log_on_each_node False \
 --logging_dir /tmp/llava/test/ \
 --num_train_epochs 1 \
