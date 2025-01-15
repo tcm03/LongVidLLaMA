@@ -240,6 +240,7 @@ def prepare_multimodal_data(
     image_aux_token_len_list=[192 * 192],  # pyre-fixme[2]
     max_length=2048,  # pyre-fixme[2]
 ):
+    print(f'@tcm: In prepare_multimodal_data()')
     input_ids_im_replaced = []
     labels_im_replaced = []
     attention_mask_im_replaced = []
@@ -252,6 +253,7 @@ def prepare_multimodal_data(
     ]
     # insert the padding tokens to the places of image so we can embed them together
     for batch_idx, cur_input_ids in enumerate(input_ids):
+        print(f'@tcm: In prepare_multimodal_data(): batch_idx={batch_idx}, cur_input_ids={cur_input_ids}')
         num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
         assert num_images == 1, num_images
         image_size = image_sizes[batch_idx]
@@ -261,6 +263,7 @@ def prepare_multimodal_data(
             + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist()
             + [cur_input_ids.shape[0]]
         )
+        print(f'@tcm: In prepare_multimodal_data(): image_token_indices={image_token_indices}')
 
         cur_input_ids_im_replaced = []
         cur_labels_im_replaced = []
@@ -268,6 +271,7 @@ def prepare_multimodal_data(
         cur_position_ids_im_replaced = []
 
         cur_labels = labels[batch_idx]
+        print(f'@tcm: In prepare_multimodal_data(): cur_labels={cur_labels}')
         cur_attention_mask = attention_mask[batch_idx]
         index = 0
         for i in range(len(image_token_indices) - 1):
@@ -277,6 +281,7 @@ def prepare_multimodal_data(
                     image_token_indices[i] + 1 : image_token_indices[i + 1] + 1
                 ]
             )
+            print(f'@tcm: In prepare_multimodal_data(): append to cur_labels_im_replaced: {cur_labels[image_token_indices[i] + 1 : image_token_indices[i + 1]]}')
             cur_labels_im_replaced.append(
                 cur_labels[image_token_indices[i] + 1 : image_token_indices[i + 1]]
             )
@@ -306,6 +311,7 @@ def prepare_multimodal_data(
                         dtype=cur_input_ids.dtype,
                     )
                 )
+                print(f'@tcm: In prepare_multimodal_data(): AGAIN append to cur_labels_im_replaced: {torch.full((image_token_len_with_newline,), IGNORE_INDEX, device=cur_labels.device, dtype=cur_labels.dtype)}')
                 cur_labels_im_replaced.append(
                     torch.full(
                         (image_token_len_with_newline,),
@@ -376,6 +382,7 @@ def prepare_multimodal_data(
 
         input_ids_im_replaced.append(torch.cat(cur_input_ids_im_replaced))
         labels_im_replaced.append(torch.cat(cur_labels_im_replaced))
+        print(f'@tcm: In prepare_multimodal_data(): labels_im_replaced[-1]={labels_im_replaced[-1]}')
         attention_mask_im_replaced.append(torch.cat(cur_attention_mask_im_replaced))
         position_ids_im_replaced.append(torch.cat(cur_position_ids_im_replaced))
 
