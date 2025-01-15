@@ -676,6 +676,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
 
             loss = None
             if labels is not None:
+                print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): self.loss_type: {self.loss_type}')
                 loss = self.loss_function(logits=logits, labels=labels, pooled_logits=pooled_logits, config=self.config)
 
             if not return_dict:
