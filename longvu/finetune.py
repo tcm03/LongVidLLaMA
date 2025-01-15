@@ -624,6 +624,8 @@ class LazySupervisedDataset(Dataset):
     def __getitem__(self, i: int) -> Dict[str, torch.Tensor]:
         sources = self.list_data_dict[i]
         dat = sources
+        print()
+        print(f'@tcm: In LazySupervisedDataset.__getitem__ with i={i}, dat={dat}')
         if isinstance(i, int):
             sources = [sources]
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
@@ -980,7 +982,6 @@ def train() -> None:
                 model = CambrianQwenForSequenceClassification.from_pretrained(  # pyre-fixme
                     model_args.input_model_filename,  # pyre-fixme
                     torch_dtype=(torch.bfloat16 if training_args.bf16 else None),  # pyre-fixme
-                    # torch_dtype=None,
                     num_labels=3,
                     ignore_mismatched_sizes=True,
                     **bnb_model_from_pretrained_args,
