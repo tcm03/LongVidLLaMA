@@ -707,7 +707,8 @@ class DataCollatorForSupervisedDataset(object):
             [instance[key] for instance in instances] for key in ("input_ids", "labels")
         )
         print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): labels={labels}')
-        orig_labels = labels.clone()
+        orig_labels = torch.cat(labels, dim=0)
+        
         max_length = self.tokenizer.model_max_length
 
         padding_side = self.tokenizer.padding_side
