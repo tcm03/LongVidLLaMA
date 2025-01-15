@@ -681,7 +681,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
             if labels is not None:
                 # loss = self.loss_function(logits=logits, labels=labels, pooled_logits=pooled_logits, config=self.config)
                 loss = fixed_cross_entropy(
-                    source = pooled_logits.view(-1, num_labels), 
+                    source = pooled_logits.view(-1, self.num_labels), 
                     target = labels.view(-1),
                     ignore_index = IGNORE_INDEX
                 )
