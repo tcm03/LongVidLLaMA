@@ -477,6 +477,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
     def __init__(self, config, num_labels=3):
         # super(Qwen2ForCausalLM, self).__init__(config)
         print(f'@tcm: In CambrianQwenForSequenceClassification.__init__()')
+        
         Qwen2ForSequenceClassification.__init__(self, config)
         config.model_type = "cambrian_qwen"
         config.rope_scaling = None
@@ -655,21 +656,38 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
             logits = self.score(hidden_states) # logits.shape: torch.Size([1, 8173, 3])
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): logits.shape: {logits.shape}')
 
+            if input_ids is not None:
+                batch_size = input_ids.shape[0]
+            else:
+                batch_size = inputs_embeds.shape[0]
+
+            if self.config.pad_token_id is None and batch_size != 1:
+                raise ValueError("Cannot handle batch sizes > 1 if no padding token is defined.")
+            if self.config.pad_token_id is None:
+                sequence_lengths = -1
+            else:
+                if input_ids is not None:
+                    # if no pad token found, use modulo instead of reverse indexing for ONNX compatibility
+                    sequence_lengths = torch.eq(input_ids, self.config.pad_token_id).int().argmax(-1) - 1
+                    sequence_lengths = sequence_lengths % input_ids.shape[-1]
+                    sequence_lengths = sequence_lengths.to(logits.device)
+                else:
+                    sequence_lengths = -1
+
+            pooled_logits = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
+
             loss = None
             if labels is not None:
-                loss_fct = CrossEntropyLoss()
-                print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): computing loss...')
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                loss = self.loss_function(logits=logits, labels=labels, pooled_logits=pooled_logits, config=self.config)
 
             if not return_dict:
-                return (loss, logits) if loss is not None else logits
+                output = (pooled_logits,) + outputs[1:]
+                return ((loss,) + output) if loss is not None else output
 
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): loss.shape: {loss.shape}')
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): logits.shape: {logits.shape}')
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): outputs.hidden_states.shape: {outputs.hidden_states.shape}')
-            return SequenceClassifierOutput(
+            return SequenceClassifierOutputWithPast(
                 loss=loss,
-                logits=logits,
+                logits=pooled_logits,
+                past_key_values=outputs.past_key_values,
                 hidden_states=outputs.hidden_states,
                 attentions=outputs.attentions,
             )
