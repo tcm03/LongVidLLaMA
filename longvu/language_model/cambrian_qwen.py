@@ -519,6 +519,10 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         print()
         print(f'@tcm: In CambrianQwenForSequenceClassification.forward()')
+        if input_ids:
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): input_ids.shape: {input_ids.shape}')
+        if images:
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): images.shape: {images.shape}')
         input_image_features = None
         highres_image_features = None
         frame_split_sizes = None
@@ -635,7 +639,10 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): after self.model()')
 
             hidden_states = outputs[0]  # Extract the last hidden state
-            logits = self.cls_head(hidden_states[:, 0, :])  # Use the [CLS] token representation
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): hidden_states.shape: {hidden_states.shape}')
+            # Use the [CLS] token representation
+            # logits = self.score(hidden_states[:, 0, :])
+            logits = self.score(hidden_states)
 
             loss = None
             if labels is not None:
