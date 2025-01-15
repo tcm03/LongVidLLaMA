@@ -517,12 +517,14 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
         dpo_forward: Optional[bool] = False,
         cache_position=None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
+        print()
         print(f'@tcm: In CambrianQwenForSequenceClassification.forward()')
         input_image_features = None
         highres_image_features = None
         frame_split_sizes = None
 
         if inputs_embeds is None:
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): before prepare_inputs_labels_for_multimodal()')
             (
                 input_ids,
                 position_ids,
@@ -544,6 +546,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                 image_aux_attention_masks_list,
                 image_sizes,
             )
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): after prepare_inputs_labels_for_multimodal()')
 
         if dpo_forward:
             # pyre-fixme[29]: `CambrianQwenModel` is not a function.
@@ -566,6 +569,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
         else:
             if hasattr(self, "vision_tower_aux_feature_list"):
                 # pyre-fixme[29]: `CambrianQwenModel` is not a function.
+                print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): vision_tower_aux_feature_list')
                 outputs = self.model(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
@@ -614,6 +618,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                     ),
                 )
             else:
+                print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): NO vision_tower_aux_feature_list')
                 # pyre-fixme[29]: `CambrianQwenModel` is not a function.
                 outputs = self.model(
                     input_ids=input_ids,
@@ -627,6 +632,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                     return_dict=return_dict,
                     # final_vision_feature_size=final_vision_feature_size,
                 )
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): after self.model()')
 
             hidden_states = outputs[0]  # Extract the last hidden state
             logits = self.cls_head(hidden_states[:, 0, :])  # Use the [CLS] token representation

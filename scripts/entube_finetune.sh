@@ -45,7 +45,7 @@ longvu/finetune.py \
 --freeze_mm_mlp_adapter False \
 --freeze_backbone True \
 --fsdp "" \
---fsdp_transformer_layer_cls_to_wrap '' \
+--fsdp_transformer_layer_cls_to_wrap 'Qwen2DecoderLayer' \
 --gradient_checkpointing True \
 --mm_projector_type sva \
 --image_token_len 144 \
