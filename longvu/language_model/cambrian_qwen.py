@@ -542,7 +542,8 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                 attention_mask,
                 past_key_values,
                 inputs_embeds,
-                labels,
+                # labels,
+                _, # @tcm: put labels=None for classification
                 vision_tower_aux_feature_list,
                 vision_tower_aux_attention_masks_list,
                 final_vision_feature_size,
@@ -552,7 +553,8 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                 position_ids,
                 attention_mask,
                 past_key_values,
-                labels,
+                # labels,
+                None, # @tcm: put labels=None for classification
                 images,
                 image_aux_attention_masks_list,
                 image_sizes,
