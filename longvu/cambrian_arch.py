@@ -795,6 +795,8 @@ class CambrianMetaForCausalLM(ABC):
         image_aux_attention_masks_list=None,
         image_sizes=None,
     ):
+        print()
+        print(f'@tcm: In CambrianMetaForCausalLM.prepare_inputs_labels_for_multimodal()')
         # vision_tower = self.get_vision_tower()
         vision_tower_aux_list = self.get_model().get_vision_tower_aux_list()
         if vision_tower_aux_list is None or images is None or input_ids.shape[1] == 1:
@@ -827,10 +829,11 @@ class CambrianMetaForCausalLM(ABC):
                     ]
                 concat_image_aux = torch.cat([image for image in image_aux], dim=0)
                 new_image_aux_list.append(concat_image_aux)
+            print(f'@tcm: In CambrianMetaForCausalLM.prepare_inputs_labels_for_multimodal(): extracting DINOv2 features...')
             image_aux_features_dino = self.encode_images(
                 new_image_aux_list, encode_type="dino"
             )
-
+            print(f'@tcm: In CambrianMetaForCausalLM.prepare_inputs_labels_for_multimodal(): DINOv2 temporal reducing...')
             (
                 image_aux_features_dino,
                 split_sizes,
@@ -844,7 +847,7 @@ class CambrianMetaForCausalLM(ABC):
                 image_sizes,
                 threshold=getattr(self.get_model().config, "dino_threshold", 0.83),
             )
-
+            print(f'@tcm: In CambrianMetaForCausalLM.prepare_inputs_labels_for_multimodal(): extracting SigLIP features...')
             image_aux_features_siglip = self.encode_images(
                 new_image_aux_list, encode_type="siglip"
             )
