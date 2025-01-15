@@ -976,6 +976,7 @@ def train() -> None:
         # @tcm: load pre-trained longvu from checkpoint longvu_qwen2
         if "cambrian" in model_args.input_model_filename.lower() or "longvu_qwen2" in model_args.input_model_filename.lower():
             if "qwen" in model_args.input_model_filename.lower():
+                print(f'@tcm: In train(): before loading CambrianQwenForSequenceClassification from pretrained')
                 model = CambrianQwenForSequenceClassification.from_pretrained(  # pyre-fixme
                     model_args.input_model_filename,  # pyre-fixme
                     torch_dtype=(torch.bfloat16 if training_args.bf16 else None),  # pyre-fixme
@@ -1002,10 +1003,12 @@ def train() -> None:
 
     # pyre-fixme[16]: `DataClass` has no attribute `freeze_backbone`.
     if model_args.freeze_backbone:
+        print(f'@tcm: In train(): Freezing backbone')
         model.model.requires_grad_(False)
 
     # pyre-fixme[16]: `DataClass` has no attribute `gradient_checkpointing`.
     if training_args.gradient_checkpointing:
+        print(f'@tcm: In train(): Enabling gradient checkpointing')
         if hasattr(model, "enable_input_require_grads"):
             model.enable_input_require_grads()
         else:
@@ -1017,6 +1020,7 @@ def train() -> None:
 
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
+    print(f'@tcm: In train(): loading tokenizer')
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_args.input_model_filename,
         # pyre-fixme[16]: `DataClass` has no attribute `model_max_length`.
@@ -1219,31 +1223,31 @@ def train() -> None:
     training_args.fsdp_config["use_orig_params"] = True
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
 
-    callbacks = []
-    # configure TensorboardCallback to upload to manifold
-    callbacks.append(
-        TensorBoardCallback(
-            SummaryWriter(
-                log_dir=os.path.join(
-                    # pyre-fixme[16]: `DataClass` has no attribute
-                    #  `output_model_filename`.
-                    model_args.output_model_filename,
-                    TENSORBOARD_LOG_DIR_NAME,
-                ),
-                comment="",
-                purge_step=None,
-                max_queue=10,
-                flush_secs=120,
-                filename_suffix=str(uuid.uuid4()),
-            )
-        )
-    )
+    # callbacks = []
+    # # configure TensorboardCallback to upload to manifold
+    # callbacks.append(
+    #     TensorBoardCallback(
+    #         SummaryWriter(
+    #             log_dir=os.path.join(
+    #                 # pyre-fixme[16]: `DataClass` has no attribute
+    #                 #  `output_model_filename`.
+    #                 model_args.output_model_filename,
+    #                 TENSORBOARD_LOG_DIR_NAME,
+    #             ),
+    #             comment="",
+    #             purge_step=None,
+    #             max_queue=10,
+    #             flush_secs=120,
+    #             filename_suffix=str(uuid.uuid4()),
+    #         )
+    #     )
+    # )
 
     trainer = LLaVATrainer(
         model=model,
         tokenizer=tokenizer,
         args=training_args,
-        callbacks=callbacks,
+        # callbacks=callbacks,
         **data_module,
     )
 
