@@ -980,6 +980,7 @@ def train() -> None:
                 model = CambrianQwenForSequenceClassification.from_pretrained(  # pyre-fixme
                     model_args.input_model_filename,  # pyre-fixme
                     torch_dtype=(torch.bfloat16 if training_args.bf16 else None),  # pyre-fixme
+                    ignore_mismatched_sizes=True,
                     **bnb_model_from_pretrained_args,
                 )
             else:
