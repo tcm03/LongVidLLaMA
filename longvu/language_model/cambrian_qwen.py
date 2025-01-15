@@ -20,6 +20,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 
+from ..mm_utils import fixed_cross_entropy
+from ..constants import IGNORE_INDEX
+
 from transformers import AutoConfig, AutoModelForCausalLM, AutoModelForSequenceClassification
 from transformers.cache_utils import Cache, DynamicCache
 from transformers.generation.utils import GenerateOutput
@@ -676,10 +679,15 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
 
             loss = None
             if labels is not None:
-                print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): self.loss_type: {self.loss_type}')
-                loss = self.loss_function(logits=logits, labels=labels, pooled_logits=pooled_logits, config=self.config)
+                # loss = self.loss_function(logits=logits, labels=labels, pooled_logits=pooled_logits, config=self.config)
+                loss = fixed_cross_entropy(
+                    source = pooled_logits.view(-1, num_labels), 
+                    target = labels.view(-1),
+                    ignore_index = IGNORE_INDEX
+                )
 
             if not return_dict:
+                print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): not return_dict')
                 output = (pooled_logits,) + outputs[1:]
                 return ((loss,) + output) if loss is not None else output
 

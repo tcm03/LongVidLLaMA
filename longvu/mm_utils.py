@@ -4,6 +4,7 @@ import math
 from io import BytesIO
 
 import torch
+from typing import Optional
 from longvu.constants import IMAGE_TOKEN_INDEX
 from PIL import Image
 
@@ -325,3 +326,15 @@ class KeywordsStoppingCriteria(StoppingCriteria):
             # pyre-fixme[6]: For 1st argument expected `LongTensor` but got `Tensor`.
             outputs.append(self.call_for_batch(output_ids[i].unsqueeze(0), scores))
         return all(outputs)
+
+def fixed_cross_entropy(
+    source: torch.Tensor, 
+    target: torch.Tensor, 
+    num_items_in_batch: Optional[int] = None, 
+    ignore_index: int = -100
+):
+    reduction = "sum" if num_items_in_batch is not None else "mean"
+    loss = torch.nn.functional.cross_entropy(source, target, ignore_index=ignore_index, reduction=reduction)
+    if reduction == "sum":
+        loss = loss / num_items_in_batch
+    return loss
