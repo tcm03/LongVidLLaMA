@@ -24,7 +24,7 @@ longvu/finetune.py \
 --save_steps 500 \
 --eval_steps 500 \
 --logging_steps 10 \
---evaluation_strategy "no" \
+--evaluation_strategy "epoch" \
 --save_strategy "steps" \
 --report_to "tensorboard" \
 --save_total_limit 1 \
@@ -45,7 +45,7 @@ longvu/finetune.py \
 --freeze_mm_mlp_adapter False \
 --freeze_backbone True \
 --fsdp "" \
---fsdp_transformer_layer_cls_to_wrap 'Qwen2DecoderLayer' \
+--fsdp_transformer_layer_cls_to_wrap '' \
 --gradient_checkpointing True \
 --mm_projector_type sva \
 --image_token_len 144 \

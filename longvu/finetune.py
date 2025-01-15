@@ -146,6 +146,8 @@ class TrainingArguments(transformers.TrainingArguments):
     mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
 
+    evaluation_strategy: Optional[str] = field(default="epoch")
+
 
 def get_local_rank() -> int:
     if os.environ.get("LOCAL_RANK"):
@@ -407,143 +409,35 @@ def prepare_multimodal_data(
         im_aux_attention_masks_list,
     )
 
+def compute_metrics(eval_pred):
+    """
+    Computes accuracy, precision, recall, and F1-score for the sequence classification task.
 
+    Args:
+    eval_pred (EvalPrediction): An object containing predictions and references (true labels).
 
-    """Collate examples for supervised fine-tuning."""
-
-    tokenizer: transformers.PreTrainedTokenizer
-    image_token_len: int
-    image_aux_token_len_list: list  # pyre-fixme
-    image_position: int
-
-    def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:  # pyre-fixme
-
-        image_token_len = self.image_token_len
-        image_aux_token_len_list = self.image_aux_token_len_list
-        image_position = self.image_position
-
-        input_ids, labels = tuple(
-            [instance[key] for instance in instances] for key in ("input_ids", "labels")
-        )
-        max_length = self.tokenizer.model_max_length
-
-        padding_side = self.tokenizer.padding_side
-
-        # print_rank0("Pad token id is", self.tokenizer.pad_token_id)
-
-        if padding_side == "left":
-            input_ids = [
-                (
-                    t[:max_length]
-                    if t.shape[0] >= max_length
-                    else torch.nn.functional.pad(
-                        t,
-                        (max_length - t.shape[0], 0),
-                        "constant",
-                        self.tokenizer.pad_token_id,
-                    )
-                )
-                for t in input_ids
-            ]
-            labels = [
-                (
-                    t[:max_length]
-                    if t.shape[0] >= max_length
-                    else torch.nn.functional.pad(
-                        t, (max_length - t.shape[0], 0), "constant", IGNORE_INDEX
-                    )
-                )
-                for t in labels
-            ]
-        else:
-            input_ids = [
-                (
-                    t[:max_length]
-                    if t.shape[0] >= max_length
-                    else torch.nn.functional.pad(
-                        t,
-                        (0, max_length - t.shape[0]),
-                        "constant",
-                        self.tokenizer.pad_token_id,
-                    )
-                )
-                for t in input_ids
-            ]
-            labels = [
-                (
-                    t[:max_length]
-                    if t.shape[0] >= max_length
-                    else torch.nn.functional.pad(
-                        t, (0, max_length - t.shape[0]), "constant", IGNORE_INDEX
-                    )
-                )
-                for t in labels
-            ]
-
-        input_ids = torch.stack(input_ids)
-        labels = torch.stack(labels)
-        attention_mask = input_ids.ne(self.tokenizer.pad_token_id)  # pyre-fixme
-        # insert dummy image
-        for i in range(len(input_ids)):
-            if (input_ids[i] == IMAGE_TOKEN_INDEX).sum() == 0:
-                cur_input_ids_tmp = input_ids[i].clone()
-                cur_input_ids_tmp[image_position + 1 :] = input_ids[
-                    i, image_position:-1
-                ]
-                cur_input_ids_tmp[image_position] = IMAGE_TOKEN_INDEX
-                input_ids[i] = cur_input_ids_tmp
-
-                cur_labels_tmp = labels[i].clone()
-                cur_labels_tmp[image_position + 1 :] = labels[i, image_position:-1]
-                cur_labels_tmp[image_position] = IGNORE_INDEX
-                labels[i] = cur_labels_tmp
-
-                cur_attention_mask_tmp = attention_mask[i].clone()
-                cur_attention_mask_tmp[image_position + 1 :] = attention_mask[
-                    i, image_position:-1
-                ]
-                cur_attention_mask_tmp[image_position] = False
-                attention_mask[i] = cur_attention_mask_tmp
-        image_sizes = [instance["image_size"] for instance in instances]
-        (
-            new_input_ids,
-            new_labels,
-            new_attention_mask,
-            new_position_ids,
-            im_aux_attention_masks_list,
-        ) = prepare_multimodal_data(
-            input_ids,
-            labels,
-            attention_mask,
-            image_sizes,
-            image_token_len,
-            image_aux_token_len_list,
-            max_length,
-        )
-        batch = dict(
-            input_ids=new_input_ids,
-            labels=new_labels,
-            attention_mask=new_attention_mask,
-            position_ids=new_position_ids,
-            image_aux_attention_masks_list=im_aux_attention_masks_list,
-        )
-        batch["image_sizes"] = image_sizes
-        if "image_aux_list" in instances[0]:
-            image_aux_list = [instance["image_aux_list"] for instance in instances]
-            image_aux_list = [
-                list(batch_image_aux) for batch_image_aux in zip(*image_aux_list)
-            ]
-            if all(
-                x is not None and x.shape == image_aux_list[0][0].shape
-                for x in image_aux_list[0]
-            ):
-                batch["images"] = [
-                    torch.stack(image_aux) for image_aux in image_aux_list
-                ]
-            else:
-                batch["images"] = image_aux_list
-
-        return batch
+    Returns:
+    dict: A dictionary with metric names as keys and their values.
+    """
+    # Unpack predictions and labels
+    logits, labels = eval_pred.predictions, eval_pred.label_ids
+    
+    # Get predicted class by taking the argmax of logits
+    predictions = logits.argmax(axis=-1)
+    
+    # Compute accuracy
+    acc = accuracy_score(labels, predictions)
+    
+    # Compute precision, recall, and F1-score
+    precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
+    
+    # Return metrics as a dictionary
+    return {
+        "accuracy": acc,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1
+    }
 
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
@@ -812,6 +706,7 @@ class DataCollatorForSupervisedDataset(object):
         input_ids, labels = tuple(
             [instance[key] for instance in instances] for key in ("input_ids", "labels")
         )
+        print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): labels={labels}')
         max_length = self.tokenizer.model_max_length
 
         padding_side = self.tokenizer.padding_side
@@ -869,6 +764,8 @@ class DataCollatorForSupervisedDataset(object):
 
         input_ids = torch.stack(input_ids)
         labels = torch.stack(labels)
+        print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): After padding and stack: labels.shape={labels.shape}')
+        print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): After padding and stack: labels={labels}')
         attention_mask = input_ids.ne(self.tokenizer.pad_token_id)  # pyre-fixme
         # insert dummy image
         for i in range(len(input_ids)):
@@ -1259,6 +1156,7 @@ def train() -> None:
         model=model,
         tokenizer=tokenizer,
         args=training_args,
+        compute_metrics=compute_metrics,
         # callbacks=callbacks,
         **data_module,
     )
