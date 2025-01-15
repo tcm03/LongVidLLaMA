@@ -519,9 +519,9 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         print()
         print(f'@tcm: In CambrianQwenForSequenceClassification.forward()')
-        if input_ids:
+        if input_ids is not None:
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): input_ids.shape: {input_ids.shape}')
-        if images:
+        if images is not None:
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): images.shape: {images.shape}')
         input_image_features = None
         highres_image_features = None
