@@ -522,7 +522,8 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
         if input_ids is not None:
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): input_ids.shape: {input_ids.shape}')
         if images is not None:
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): images.shape: {images.shape}')
+            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): len(images): {len(images)}')
+            print(f'@tcm: type(images[0]): {type(images[0])}')
         input_image_features = None
         highres_image_features = None
         frame_split_sizes = None
