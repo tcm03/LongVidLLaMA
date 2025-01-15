@@ -585,7 +585,9 @@ class LazySupervisedDataset(Dataset):
                                 vr.get_avg_fps() / self.data_args.video_fps
                             )
                             frame_idx = [i for i in range(0, len(vr), sample_fps)]
+                            print(f'@tcm: In LazySupervisedDataset.__getitem__(): read {len(frame_idx)} frames')
                             image = vr.get_batch(frame_idx).asnumpy()
+                            print(f'@tcm: In LazySupervisedDataset.__getitem__(): image.shape={image.shape}')
                             image_size = image[0].shape[:2]
                         if self.data_args.uniform_sample:
                             num_sample = 100
@@ -648,7 +650,8 @@ class LazySupervisedDataset(Dataset):
                         image_aux, return_tensors="pt"
                     )["pixel_values"][0]
                 image_aux_list.append(image_aux)
-
+            
+            print(f'@tcm: In LazySupervisedDataset.__getitem__(): len(image_aux_list) = # preprocessed frames = {len(image_aux_list)}')
             sources = preprocess_multimodal(
                 copy.deepcopy([e["conversations"] for e in sources]), self.data_args
             )
@@ -664,6 +667,7 @@ class LazySupervisedDataset(Dataset):
             return self.__getitem__(0)
         # image exist in the data
         if has_image:
+            print(f'@tcm: In LazySupervisedDataset.__getitem__(): has_image=True')
             data_dict["image_aux_list"] = image_aux_list  # pyre-fixme
         elif self.data_args.is_multimodal:
             # image does not exist in the data, but the model is multimodal
@@ -816,6 +820,7 @@ class DataCollatorForSupervisedDataset(object):
         )
         batch["image_sizes"] = image_sizes
         if "image_aux_list" in instances[0]:
+            print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): processing image_aux_list...')
             image_aux_list = [instance["image_aux_list"] for instance in instances]
             image_aux_list = [
                 list(batch_image_aux) for batch_image_aux in zip(*image_aux_list)
@@ -829,6 +834,11 @@ class DataCollatorForSupervisedDataset(object):
                 ]
             else:
                 batch["images"] = image_aux_list
+
+            if isinstance(batch['images'], list):
+                print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): len(batch["images"])={len(batch["images"])}')
+                for i, img in enumerate(batch['images']):
+                    print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): batch["images"][{i}].shape={img.shape}')
 
         return batch
 
