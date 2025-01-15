@@ -1135,32 +1135,32 @@ def train() -> None:
     training_args.fsdp_config["use_orig_params"] = True
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
 
-    # callbacks = []
-    # # configure TensorboardCallback to upload to manifold
-    # callbacks.append(
-    #     TensorBoardCallback(
-    #         SummaryWriter(
-    #             log_dir=os.path.join(
-    #                 # pyre-fixme[16]: `DataClass` has no attribute
-    #                 #  `output_model_filename`.
-    #                 model_args.output_model_filename,
-    #                 TENSORBOARD_LOG_DIR_NAME,
-    #             ),
-    #             comment="",
-    #             purge_step=None,
-    #             max_queue=10,
-    #             flush_secs=120,
-    #             filename_suffix=str(uuid.uuid4()),
-    #         )
-    #     )
-    # )
+    callbacks = []
+    # configure TensorboardCallback to upload to manifold
+    callbacks.append(
+        TensorBoardCallback(
+            SummaryWriter(
+                log_dir=os.path.join(
+                    # pyre-fixme[16]: `DataClass` has no attribute
+                    #  `output_model_filename`.
+                    model_args.output_model_filename,
+                    TENSORBOARD_LOG_DIR_NAME,
+                ),
+                comment="",
+                purge_step=None,
+                max_queue=10,
+                flush_secs=120,
+                filename_suffix=str(uuid.uuid4()),
+            )
+        )
+    )
 
     trainer = LLaVATrainer(
         model=model,
         tokenizer=tokenizer,
         args=training_args,
         compute_metrics=compute_metrics,
-        # callbacks=callbacks,
+        callbacks=callbacks,
         **data_module,
     )
 
