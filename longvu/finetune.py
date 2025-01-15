@@ -394,7 +394,7 @@ def prepare_multimodal_data(
     new_attention_mask = [x[0:max_length] for x in attention_mask_im_replaced]
     new_position_ids = [x[0:max_length] for x in position_ids_im_replaced]
     new_input_ids = torch.stack(new_input_ids)
-    new_labels = torch.stack(new_labels)
+    # new_labels = torch.stack(new_labels)
     new_attention_mask = torch.stack(new_attention_mask)
     new_position_ids = torch.stack(new_position_ids)
     im_aux_attention_masks_list = [
