@@ -488,8 +488,10 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
         self.model = CambrianQwenModel(config)
         
         # Freeze all parameters except the classification head
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        print(f'@tcm: In CambrianQwenForSequenceClassification.__init__(): self.score.weight.requires_grad: {self.score.weight.requires_grad}')
         # Initialize weights and apply final processing
         self.post_init()
         print(f'@tcm: In CambrianQwenForSequenceClassification.__init__(): done')
