@@ -754,6 +754,7 @@ class LazySupervisedDataset(Dataset):
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])
         data_dict = preprocess(sources, self.tokenizer, has_image=has_image)  # pyre-fixme
+        data_dict['labels'] = [torch.tensor([[int(num_str)]], dtype=torch.long)]
         if isinstance(i, int):
             data_dict = dict(
                 input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0]

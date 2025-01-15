@@ -520,9 +520,13 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
         print()
         print(f'@tcm: In CambrianQwenForSequenceClassification.forward()')
         if input_ids is not None:
+            # input_ids.shape: torch.Size([1, 8192])
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): input_ids.shape: {input_ids.shape}')
         if images is not None:
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): len(images): {len(images)}') # 2
+            # (batch_size, # frames, # channels, W, H)
+            # images[0].shape: torch.Size([1, 165, 3, 384, 384])
+            # images[1].shape: torch.Size([1, 165, 3, 378, 378])
             for idx, image in enumerate(images):
                 print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): images[{idx}].shape: {image.shape}')
         if labels is not None:
@@ -648,7 +652,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): hidden_states.shape: {hidden_states.shape}')
             # Use the [CLS] token representation
             # logits = self.score(hidden_states[:, 0, :])
-            logits = self.score(hidden_states)
+            logits = self.score(hidden_states) # logits.shape: torch.Size([1, 8173, 3])
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): logits.shape: {logits.shape}')
 
             loss = None
