@@ -422,17 +422,22 @@ def compute_metrics(eval_pred):
     Returns:
     dict: A dictionary with metric names as keys and their values.
     """
+    print(f'@tcm: In compute_metrics()')
     # Unpack predictions and labels
     logits, labels = eval_pred.predictions, eval_pred.label_ids
+    print(f'@tcm: In compute_metrics(): logits.shape={logits.shape}, labels={labels}')
     
     # Get predicted class by taking the argmax of logits
     predictions = logits.argmax(axis=-1)
+    print(f'@tcm: In compute_metrics(): predictions={predictions}')
     
     # Compute accuracy
     acc = accuracy_score(labels, predictions)
+    print(f'@tcm: In compute_metrics(): acc={acc}')
     
     # Compute precision, recall, and F1-score
     precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
+    print(f'@tcm: In compute_metrics(): precision={precision}, recall={recall}, f1={f1}')
     
     # Return metrics as a dictionary
     return {
