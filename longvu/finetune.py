@@ -850,7 +850,8 @@ class DataCollatorForSupervisedDataset(object):
             if isinstance(batch['images'], list):
                 print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): len(batch["images"])={len(batch["images"])}')
                 for i, img in enumerate(batch['images']):
-                    print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): batch["images"][{i}].shape={img.shape}')
+                    if isinstance(img, torch.Tensor):
+                        print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): batch["images"][{i}].shape={img.shape}')
 
         return batch
 
