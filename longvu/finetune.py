@@ -106,7 +106,7 @@ class ModelArguments:
     connect_layer: Optional[int] = field(default=2)
     lowres_token: Optional[int] = field(default=8)
     dino_threshold: float = field(default=0.83)
-    drop_threshold: float = field(default=0.8)
+    drop_threshold: float = field(default=0.75)
     frame_pos: bool = field(default=False)
     is_image_newline: bool = field(default=True)
 
@@ -149,7 +149,11 @@ class TrainingArguments(transformers.TrainingArguments):
     mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
 
+    num_train_epochs: int = field(default=5)
+    per_device_train_batch_size: int = field(default=1)
+    per_device_eval_batch_size: int = field(default=1)
     evaluation_strategy: Optional[str] = field(default="epoch")
+    save_strategy: Optional[str] = field(default="epoch")
 
 
 def get_local_rank() -> int:

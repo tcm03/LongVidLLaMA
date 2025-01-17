@@ -19,9 +19,9 @@ longvu/finetune.py \
 --bf16 True \
 --log_on_each_node False \
 --logging_dir /tmp/llava/test/ \
---num_train_epochs 2 \
---per_device_train_batch_size 1 \
---per_device_eval_batch_size 1 \
+--num_train_epochs 3 \
+--per_device_train_batch_size 3 \
+--per_device_eval_batch_size 3 \
 --gradient_accumulation_steps 1 \
 --save_steps 500 \
 --eval_steps 500 \
