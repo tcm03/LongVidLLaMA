@@ -58,6 +58,8 @@ import pandas as pd
 
 from transformers.integrations import TensorBoardCallback
 
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+
 TENSORBOARD_LOG_DIR_NAME: str = "tensorboard_logs"
 
 
