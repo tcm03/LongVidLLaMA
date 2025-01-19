@@ -1,6 +1,7 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_qwen2"
-PATH_TO_JSON="/content/drive/MyDrive/Thesis/EnTube/EnTube.json"
+PATH_TO_JSON_TRAIN="/content/drive/MyDrive/Thesis/EnTube/EnTube_short_train.json"
+PATH_TO_JSON_VAL="/content/drive/MyDrive/Thesis/EnTube/EnTube_short_val.json"
 PATH_TO_FOLDER="/content/drive/MyDrive/Thesis/EnTube"
 VERSION="qwen"
 
@@ -10,15 +11,16 @@ longvu/finetune.py \
 --input_model_filename $PREV_STAGE_CHECKPOINT \
 --output_model_filename "./checkpoints/longvu_entube/" \
 --model_name_or_path "longvu_qwen2" \
---data_path $PATH_TO_JSON \
+--data_path_train $PATH_TO_JSON_TRAIN \
+--data_path_val $PATH_TO_JSON_VAL \
 --image_folder $PATH_TO_FOLDER \
 --model_max_length 8192 \
 --fp16 False \
 --bf16 True \
 --log_on_each_node False \
 --logging_dir /tmp/llava/test/ \
---num_train_epochs 1 \
---per_device_train_batch_size 1 \
+--num_train_epochs 5 \
+--per_device_train_batch_size 4 \
 --per_device_eval_batch_size 4 \
 --gradient_accumulation_steps 1 \
 --save_steps 500 \

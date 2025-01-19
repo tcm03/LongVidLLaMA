@@ -58,6 +58,8 @@ import pandas as pd
 
 from transformers.integrations import TensorBoardCallback
 
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+
 TENSORBOARD_LOG_DIR_NAME: str = "tensorboard_logs"
 
 
@@ -104,14 +106,15 @@ class ModelArguments:
     connect_layer: Optional[int] = field(default=2)
     lowres_token: Optional[int] = field(default=8)
     dino_threshold: float = field(default=0.83)
-    drop_threshold: float = field(default=0.8)
+    drop_threshold: float = field(default=0.75)
     frame_pos: bool = field(default=False)
     is_image_newline: bool = field(default=True)
 
 
 @dataclass
 class DataArguments:
-    data_path: Optional[str] = field(default=None)
+    data_path_train: Optional[str] = field(default=None)
+    data_path_val: Optional[str] = field(default=None)
     lazy_preprocess: bool = False
     is_multimodal: bool = False
     image_position: Optional[int] = field(default=91)
@@ -146,7 +149,11 @@ class TrainingArguments(transformers.TrainingArguments):
     mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
 
+    num_train_epochs: int = field(default=5)
+    per_device_train_batch_size: int = field(default=1)
+    per_device_eval_batch_size: int = field(default=1)
     evaluation_strategy: Optional[str] = field(default="epoch")
+    save_strategy: Optional[str] = field(default="epoch")
 
 
 def get_local_rank() -> int:
@@ -419,17 +426,22 @@ def compute_metrics(eval_pred):
     Returns:
     dict: A dictionary with metric names as keys and their values.
     """
+    print(f'@tcm: In compute_metrics()')
     # Unpack predictions and labels
     logits, labels = eval_pred.predictions, eval_pred.label_ids
+    print(f'@tcm: In compute_metrics(): logits.shape={logits.shape}, labels={labels}')
     
     # Get predicted class by taking the argmax of logits
     predictions = logits.argmax(axis=-1)
+    print(f'@tcm: In compute_metrics(): predictions={predictions}')
     
     # Compute accuracy
     acc = accuracy_score(labels, predictions)
+    print(f'@tcm: In compute_metrics(): acc={acc}')
     
     # Compute precision, recall, and F1-score
     precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
+    print(f'@tcm: In compute_metrics(): precision={precision}, recall={recall}, f1={f1}')
     
     # Return metrics as a dictionary
     return {
@@ -838,7 +850,8 @@ class DataCollatorForSupervisedDataset(object):
             if isinstance(batch['images'], list):
                 print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): len(batch["images"])={len(batch["images"])}')
                 for i, img in enumerate(batch['images']):
-                    print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): batch["images"][{i}].shape={img.shape}')
+                    if isinstance(img, torch.Tensor):
+                        print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): batch["images"][{i}].shape={img.shape}')
 
         return batch
 
@@ -847,7 +860,10 @@ def make_supervised_data_module(
 ) -> Dict:  # pyre-fixme
     """Make dataset and collator for supervised fine-tuning."""
     train_dataset = LazySupervisedDataset(
-        tokenizer=tokenizer, data_path=data_args.data_path, data_args=data_args
+        tokenizer=tokenizer, data_path=data_args.data_path_train, data_args=data_args
+    )
+    eval_dataset = LazySupervisedDataset(
+        tokenizer=tokenizer, data_path=data_args.data_path_val, data_args=data_args
     )
     data_collator_kwargs = {
         "tokenizer": tokenizer,
@@ -869,7 +885,7 @@ def make_supervised_data_module(
     data_collator = DataCollatorForSupervisedDataset(**data_collator_kwargs)  # pyre-fixme
 
     return dict(
-        train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator
+        train_dataset=train_dataset, eval_dataset=eval_dataset, data_collator=data_collator
     )
 
 
@@ -1181,6 +1197,7 @@ def train() -> None:
     else:
         trainer.train()
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
+    trainer.evaluate()
     trainer.save_state()
 
     safe_save_model_for_hf_trainer(
