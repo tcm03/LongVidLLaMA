@@ -253,6 +253,7 @@ class CambrianQwenForCausalLM(Qwen2ForCausalLM, CambrianMetaForCausalLM):
         cache_position=None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
 
+        torch.cuda.empty_cache()
         input_image_features = None
         highres_image_features = None
         frame_split_sizes = None
