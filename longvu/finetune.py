@@ -598,7 +598,7 @@ class LazySupervisedDataset(Dataset):
                             )
                             frame_idx = [i for i in range(0, len(vr), sample_fps)]
                             print(f'@tcm: In LazySupervisedDataset.__getitem__(): read {len(frame_idx)} frames')
-                            image = vr.get_batch(frame_idx).asnumpy()
+                            image = vr.get_batch(frame_idx).asnumpy() # shape: (# frames, H, W, C)
                             print(f'@tcm: In LazySupervisedDataset.__getitem__(): image.shape={image.shape}')
                             image_size = image[0].shape[:2]
                         if self.data_args.uniform_sample:
@@ -663,7 +663,7 @@ class LazySupervisedDataset(Dataset):
                     )["pixel_values"][0]
                 image_aux_list.append(image_aux)
             
-            print(f'@tcm: In LazySupervisedDataset.__getitem__(): len(image_aux_list) = # preprocessed frames = {len(image_aux_list)}')
+            print(f'@tcm: In LazySupervisedDataset.__getitem__(): len(image_aux_list) = # processors = {len(image_aux_list)}')
             sources = preprocess_multimodal(
                 copy.deepcopy([e["conversations"] for e in sources]), self.data_args
             )
@@ -834,6 +834,7 @@ class DataCollatorForSupervisedDataset(object):
         if "image_aux_list" in instances[0]:
             print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): processing image_aux_list...')
             image_aux_list = [instance["image_aux_list"] for instance in instances]
+            # organize list of tuples for each processor into tuple of lists for each processor
             image_aux_list = [
                 list(batch_image_aux) for batch_image_aux in zip(*image_aux_list)
             ]
@@ -841,10 +842,12 @@ class DataCollatorForSupervisedDataset(object):
                 x is not None and x.shape == image_aux_list[0][0].shape
                 for x in image_aux_list[0]
             ):
+                # if all videos in the batch have the same shape, stack them
                 batch["images"] = [
                     torch.stack(image_aux) for image_aux in image_aux_list
                 ]
             else:
+                # otherwise, keep them as a list
                 batch["images"] = image_aux_list
 
             if isinstance(batch['images'], list):

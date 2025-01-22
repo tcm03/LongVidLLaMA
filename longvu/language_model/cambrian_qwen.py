@@ -517,6 +517,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         print()
         print(f'@tcm: In CambrianQwenForSequenceClassification.forward()')
+        torch.cuda.empty_cache()
         if input_ids is not None:
             # input_ids.shape: torch.Size([1, 8192])
             print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): input_ids.shape: {input_ids.shape}')
