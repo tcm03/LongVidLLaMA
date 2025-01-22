@@ -5,7 +5,7 @@ PATH_TO_JSON_VAL="/media02/nthuy/entube/EnTube/EnTube_val.json"
 PATH_TO_FOLDER="/media02/nthuy/entube/EnTube"
 VERSION="qwen"
 
-torchrun --nproc_per_node=4 --nnodes=2 --node_rank=$SLURM_PROCID \
+CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=4 --nnodes=2 --node_rank=$SLURM_PROCID \
     --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT \
     longvu/finetune.py \
     --output_dir "/tmp/longvu/" \
