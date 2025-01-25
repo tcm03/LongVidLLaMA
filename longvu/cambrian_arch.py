@@ -830,10 +830,12 @@ class CambrianMetaForCausalLM(ABC):
                 concat_image_aux = torch.cat([image for image in image_aux], dim=0)
                 new_image_aux_list.append(concat_image_aux)
             with MeasureResourceUsage():
+                # net mem change: 1880.62 MB
                 image_aux_features_dino = self.encode_images(
                     new_image_aux_list, encode_type="dino"
                 )
             with MeasureResourceUsage():
+                # net mem change: 1.06 MB
                 (
                     image_aux_features_dino,
                     split_sizes,
@@ -848,6 +850,7 @@ class CambrianMetaForCausalLM(ABC):
                     threshold=getattr(self.get_model().config, "dino_threshold", 0.83),
                 )
             with MeasureResourceUsage():
+                # net mem change: 530.84 MB
                 image_aux_features_siglip = self.encode_images(
                     new_image_aux_list, encode_type="siglip"
                 )
@@ -883,6 +886,7 @@ class CambrianMetaForCausalLM(ABC):
         global_context_feature_final = None
 
         with MeasureResourceUsage():
+            # net mem change: 5900.86 MB
             if self.get_model().config.mm_projector_type == "sva":
                 vision_tower_aux_feature_list = []
                 vision_tower_aux_attention_masks_list = []
@@ -1071,6 +1075,7 @@ class CambrianMetaForCausalLM(ABC):
             image_features_downsample = []
             final_size = []
             with MeasureResourceUsage():
+                # net mem change: 1582.95 MB
                 if self.get_model().config.mm_projector_type == "sva":
                     (
                         vision_tower_aux_feature_list_final,
@@ -1392,6 +1397,7 @@ class CambrianMetaForCausalLM(ABC):
 
             
             with MeasureResourceUsage():
+                # net mem change: 0
                 # ablation mix
                 if (
                     input_mix_res
@@ -1460,6 +1466,7 @@ class CambrianMetaForCausalLM(ABC):
                                 )
             
             with MeasureResourceUsage():
+                # net mem change: 147.25 MB
                 # ablation drop
                 if (
                     max_visual_len < visual_len
@@ -1518,6 +1525,7 @@ class CambrianMetaForCausalLM(ABC):
                     image_features[cur_image_idx] = new_visual_emb_frames[:max_visual_len]
             
             with MeasureResourceUsage():
+                # net mem change: 116.92 MB
                 for i in range(num_images + 1):
                     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
                     cur_new_labels.append(cur_labels_noim[i])
