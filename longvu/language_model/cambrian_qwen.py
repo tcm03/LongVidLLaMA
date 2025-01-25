@@ -528,7 +528,10 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
             # (batch_size, # frames, # channels, W, H)
             # images[0].shape: torch.Size([1, 165, 3, 384, 384])
             # images[1].shape: torch.Size([1, 165, 3, 378, 378])
-            pass
+            if isinstance(images, list):
+                for i, image in enumerate(images):
+                    if isinstance(image, torch.Tensor):
+                        logging.info(f'images[{i}].shape: {image.shape}')
         input_image_features = None
         highres_image_features = None
         frame_split_sizes = None
