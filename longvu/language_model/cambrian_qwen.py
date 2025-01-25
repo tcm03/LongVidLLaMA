@@ -39,6 +39,9 @@ IS_XLA_AVAILABLE = False
 
 from transformers import Qwen2Config, Qwen2ForCausalLM, Qwen2Model, Qwen2ForSequenceClassification
 
+from resource_logging import measure_resource_usage, MeasureResourceUsage
+import logging
+
 logger = logging.get_logger(__name__)
 
 
@@ -54,6 +57,7 @@ class CambrianQwenModel(CambrianMetaModel, Qwen2Model):
     def __init__(self, config: Qwen2Config):
         super(CambrianQwenModel, self).__init__(config)
 
+    @measure_resource_usage()
     def forward(
         self,
         # pyre-fixme[9]: input_ids has type `LongTensor`; used as `None`.
@@ -480,7 +484,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
 
     def __init__(self, config, num_labels=3):
         # super(Qwen2ForCausalLM, self).__init__(config)
-        print(f'@tcm: In CambrianQwenForSequenceClassification.__init__()')
+        logging.info(f'In CambrianQwenForSequenceClassification.__init__()')
         
         Qwen2ForSequenceClassification.__init__(self, config)
         config.model_type = "cambrian_qwen"
@@ -488,14 +492,14 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
 
         self.model = CambrianQwenModel(config)
 
-        print(f'@tcm: In CambrianQwenForSequenceClassification.__init__(): self.score.weight.requires_grad: {self.score.weight.requires_grad}')
         # Initialize weights and apply final processing
         self.post_init()
-        print(f'@tcm: In CambrianQwenForSequenceClassification.__init__(): done')
+        logging.info(f'In CambrianQwenForSequenceClassification.__init__(): done')
 
     def get_model(self):
         return self.model
 
+    @measure_resource_usage()
     def forward(
         self,
         # pyre-fixme[9]: input_ids has type `LongTensor`; used as `None`.
@@ -516,30 +520,21 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
         dpo_forward: Optional[bool] = False,
         cache_position=None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
-        print()
-        print(f'@tcm: In CambrianQwenForSequenceClassification.forward()')
-        torch.cuda.empty_cache()
+        
+        
         if input_ids is not None:
             # input_ids.shape: torch.Size([1, 8192])
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): input_ids.shape: {input_ids.shape}')
+            logging.info(f'input_ids.shape: {input_ids.shape}')
         if images is not None:
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): len(images): {len(images)}') # 2
             # (batch_size, # frames, # channels, W, H)
             # images[0].shape: torch.Size([1, 165, 3, 384, 384])
             # images[1].shape: torch.Size([1, 165, 3, 378, 378])
-            for idx, image in enumerate(images):
-                if isinstance(image, torch.Tensor):
-                    print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): images[{idx}].shape: {image.shape}')
-        if labels is not None:
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): labels: {labels}')
-        if return_dict is not None:
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): return_dict: {return_dict}')
+            pass
         input_image_features = None
         highres_image_features = None
         frame_split_sizes = None
 
         if inputs_embeds is None:
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): before prepare_inputs_labels_for_multimodal()')
             (
                 input_ids,
                 position_ids,
@@ -563,7 +558,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                 image_aux_attention_masks_list,
                 image_sizes,
             )
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): after prepare_inputs_labels_for_multimodal()')
+            
 
         if dpo_forward:
             # pyre-fixme[29]: `CambrianQwenModel` is not a function.
@@ -586,7 +581,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
         else:
             if hasattr(self, "vision_tower_aux_feature_list"):
                 # pyre-fixme[29]: `CambrianQwenModel` is not a function.
-                print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): vision_tower_aux_feature_list')
+                
                 outputs = self.model(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
@@ -635,7 +630,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                     ),
                 )
             else:
-                print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): NO vision_tower_aux_feature_list')
+                
                 # pyre-fixme[29]: `CambrianQwenModel` is not a function.
                 outputs = self.model(
                     input_ids=input_ids,
@@ -649,14 +644,14 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                     return_dict=return_dict,
                     # final_vision_feature_size=final_vision_feature_size,
                 )
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): after self.model()')
+            
 
             hidden_states = outputs[0]  # hidden_states.shape: torch.Size([1, 8173, 3584])
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): hidden_states.shape: {hidden_states.shape}')
+            logging.info(f'hidden_states.shape: {hidden_states.shape}')
             # Use the [CLS] token representation
             # logits = self.score(hidden_states[:, 0, :])
             logits = self.score(hidden_states) # logits.shape: torch.Size([1, 8173, 3])
-            print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): logits.shape: {logits.shape}')
+            logging.info(f'logits.shape: {logits.shape}')
 
             if input_ids is not None:
                 batch_size = input_ids.shape[0]
@@ -688,7 +683,6 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                 )
 
             if not return_dict:
-                print(f'@tcm: In CambrianQwenForSequenceClassification.forward(): not return_dict')
                 output = (pooled_logits,) + outputs[1:]
                 return ((loss,) + output) if loss is not None else output
 
