@@ -31,7 +31,7 @@ from transformers.modeling_outputs import (
     BaseModelOutputWithPast,
     CausalLMOutputWithPast,
 )
-from transformers.utils import logging
+from transformers.utils import logging as tf_logging
 
 from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
 
@@ -42,7 +42,7 @@ from transformers import Qwen2Config, Qwen2ForCausalLM, Qwen2Model, Qwen2ForSequ
 from resource_logging import measure_resource_usage, MeasureResourceUsage
 import logging
 
-logger = logging.get_logger(__name__)
+logger = tf_logging.get_logger(__name__)
 
 
 class CambrianConfig(Qwen2Config):
