@@ -59,6 +59,13 @@ import pandas as pd
 from transformers.integrations import TensorBoardCallback
 
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+import logging
+from resource_logging import measure_resource_usage, MeasureResourceUsage
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(filename)s:%(lineno)d - %(funcName)s - %(levelname)s - %(message)s"
+)
 
 TENSORBOARD_LOG_DIR_NAME: str = "tensorboard_logs"
 
@@ -249,7 +256,7 @@ def prepare_multimodal_data(
     image_aux_token_len_list=[192 * 192],  # pyre-fixme[2]
     max_length=2048,  # pyre-fixme[2]
 ):
-    print(f'@tcm: In prepare_multimodal_data()')
+    logging.info(f'In prepare_multimodal_data()')
     input_ids_im_replaced = []
     labels_im_replaced = []
     attention_mask_im_replaced = []
@@ -426,22 +433,22 @@ def compute_metrics(eval_pred):
     Returns:
     dict: A dictionary with metric names as keys and their values.
     """
-    print(f'@tcm: In compute_metrics()')
+    
     # Unpack predictions and labels
     logits, labels = eval_pred.predictions, eval_pred.label_ids
-    print(f'@tcm: In compute_metrics(): logits.shape={logits.shape}, labels={labels}')
+    logging.info(f'logits.shape={logits.shape}, labels={labels}')
     
     # Get predicted class by taking the argmax of logits
     predictions = logits.argmax(axis=-1)
-    print(f'@tcm: In compute_metrics(): predictions={predictions}')
+    logging.info(f'predictions={predictions}')
     
     # Compute accuracy
     acc = accuracy_score(labels, predictions)
-    print(f'@tcm: In compute_metrics(): acc={acc}')
+    logging.info(f'acc={acc}')
     
     # Compute precision, recall, and F1-score
     precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
-    print(f'@tcm: In compute_metrics(): precision={precision}, recall={recall}, f1={f1}')
+    logging.info(f'precision={precision}, recall={recall}, f1={f1}')
     
     # Return metrics as a dictionary
     return {
@@ -537,8 +544,6 @@ class LazySupervisedDataset(Dataset):
     def __getitem__(self, i: int) -> Dict[str, torch.Tensor]:
         sources = self.list_data_dict[i]
         dat = sources
-        print()
-        print(f'@tcm: In LazySupervisedDataset.__getitem__ with i={i}, dat={dat}')
         if isinstance(i, int):
             sources = [sources]
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
@@ -592,15 +597,15 @@ class LazySupervisedDataset(Dataset):
                                 )
                             image_size = image[0].size
                         else:
-                            vr = VideoReader(video_file, ctx=cpu(0), num_threads=1)
-                            sample_fps = round(
-                                vr.get_avg_fps() / self.data_args.video_fps
-                            )
-                            frame_idx = [i for i in range(0, len(vr), sample_fps)]
-                            print(f'@tcm: In LazySupervisedDataset.__getitem__(): read {len(frame_idx)} frames')
-                            image = vr.get_batch(frame_idx).asnumpy() # shape: (# frames, H, W, C)
-                            print(f'@tcm: In LazySupervisedDataset.__getitem__(): image.shape={image.shape}')
-                            image_size = image[0].shape[:2]
+                            with MeasureResourceUsage():
+                                vr = VideoReader(video_file, ctx=cpu(0), num_threads=1)
+                                sample_fps = round(
+                                    vr.get_avg_fps() / self.data_args.video_fps
+                                )
+                                frame_idx = [i for i in range(0, len(vr), sample_fps)]
+                                logging.info(f'read {len(frame_idx)} frames')
+                                image = vr.get_batch(frame_idx).asnumpy() # shape: (# frames, H, W, C)
+                                image_size = image[0].shape[:2]
                         if self.data_args.uniform_sample:
                             num_sample = 100
                             if len(image) > num_sample:
@@ -663,7 +668,7 @@ class LazySupervisedDataset(Dataset):
                     )["pixel_values"][0]
                 image_aux_list.append(image_aux)
             
-            print(f'@tcm: In LazySupervisedDataset.__getitem__(): len(image_aux_list) = # processors = {len(image_aux_list)}')
+            
             sources = preprocess_multimodal(
                 copy.deepcopy([e["conversations"] for e in sources]), self.data_args
             )
@@ -679,7 +684,6 @@ class LazySupervisedDataset(Dataset):
             return self.__getitem__(0)
         # image exist in the data
         if has_image:
-            print(f'@tcm: In LazySupervisedDataset.__getitem__(): has_image=True')
             data_dict["image_aux_list"] = image_aux_list  # pyre-fixme
         elif self.data_args.is_multimodal:
             # image does not exist in the data, but the model is multimodal
@@ -722,7 +726,6 @@ class DataCollatorForSupervisedDataset(object):
         input_ids, labels = tuple(
             [instance[key] for instance in instances] for key in ("input_ids", "labels")
         )
-        print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): labels={labels}')
         orig_labels = torch.cat(labels, dim=0)
         
         max_length = self.tokenizer.model_max_length
@@ -782,8 +785,6 @@ class DataCollatorForSupervisedDataset(object):
 
         input_ids = torch.stack(input_ids)
         labels = torch.stack(labels)
-        print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): After padding and stack: labels.shape={labels.shape}')
-        print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): After padding and stack: labels={labels}')
         attention_mask = input_ids.ne(self.tokenizer.pad_token_id)  # pyre-fixme
         # insert dummy image
         for i in range(len(input_ids)):
@@ -832,7 +833,7 @@ class DataCollatorForSupervisedDataset(object):
         )
         batch["image_sizes"] = image_sizes
         if "image_aux_list" in instances[0]:
-            print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): processing image_aux_list...')
+
             image_aux_list = [instance["image_aux_list"] for instance in instances]
             # organize list of tuples for each processor into tuple of lists for each processor
             image_aux_list = [
@@ -850,24 +851,26 @@ class DataCollatorForSupervisedDataset(object):
                 # otherwise, keep them as a list
                 batch["images"] = image_aux_list
 
-            if isinstance(batch['images'], list):
-                print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): len(batch["images"])={len(batch["images"])}')
-                for i, img in enumerate(batch['images']):
-                    if isinstance(img, torch.Tensor):
-                        print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): batch["images"][{i}].shape={img.shape}')
+            # if isinstance(batch['images'], list):
+            #     print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): len(batch["images"])={len(batch["images"])}')
+            #     for i, img in enumerate(batch['images']):
+            #         if isinstance(img, torch.Tensor):
+            #             print(f'@tcm: In DataCollatorForSupervisedDataset.__call__(): batch["images"][{i}].shape={img.shape}')
 
         return batch
 
+@measure_resource_usage()
 def make_supervised_data_module(
     tokenizer: transformers.PreTrainedTokenizer, data_args  # pyre-fixme
 ) -> Dict:  # pyre-fixme
     """Make dataset and collator for supervised fine-tuning."""
-    train_dataset = LazySupervisedDataset(
-        tokenizer=tokenizer, data_path=data_args.data_path_train, data_args=data_args
-    )
-    eval_dataset = LazySupervisedDataset(
-        tokenizer=tokenizer, data_path=data_args.data_path_val, data_args=data_args
-    )
+    with MeasureResourceUsage():    
+        train_dataset = LazySupervisedDataset(
+            tokenizer=tokenizer, data_path=data_args.data_path_train, data_args=data_args
+        )
+        eval_dataset = LazySupervisedDataset(
+            tokenizer=tokenizer, data_path=data_args.data_path_val, data_args=data_args
+        )
     data_collator_kwargs = {
         "tokenizer": tokenizer,
     }
@@ -885,7 +888,8 @@ def make_supervised_data_module(
     if hasattr(data_args, "image_position"):
         data_collator_kwargs["image_position"] = data_args.image_position
 
-    data_collator = DataCollatorForSupervisedDataset(**data_collator_kwargs)  # pyre-fixme
+    with MeasureResourceUsage():
+        data_collator = DataCollatorForSupervisedDataset(**data_collator_kwargs)  # pyre-fixme
 
     return dict(
         train_dataset=train_dataset, eval_dataset=eval_dataset, data_collator=data_collator
@@ -915,14 +919,14 @@ def train() -> None:
         # @tcm: load pre-trained longvu from checkpoint longvu_qwen2
         if "cambrian" in model_args.input_model_filename.lower() or "longvu_qwen2" in model_args.input_model_filename.lower():
             if "qwen" in model_args.input_model_filename.lower():
-                print(f'@tcm: In train(): before loading CambrianQwenForSequenceClassification from pretrained')
-                model = CambrianQwenForSequenceClassification.from_pretrained(  # pyre-fixme
-                    model_args.input_model_filename,  # pyre-fixme
-                    torch_dtype=(torch.bfloat16 if training_args.bf16 else None),  # pyre-fixme
-                    num_labels=3,
-                    ignore_mismatched_sizes=True,
-                    **bnb_model_from_pretrained_args,
-                )
+                with MeasureResourceUsage():
+                    model = CambrianQwenForSequenceClassification.from_pretrained(  # pyre-fixme
+                        model_args.input_model_filename,  # pyre-fixme
+                        torch_dtype=(torch.bfloat16 if training_args.bf16 else None),  # pyre-fixme
+                        num_labels=3,
+                        ignore_mismatched_sizes=True,
+                        **bnb_model_from_pretrained_args,
+                    )
             else:
                 # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no attribute
                 #  `from_pretrained`.
@@ -944,12 +948,10 @@ def train() -> None:
 
     # pyre-fixme[16]: `DataClass` has no attribute `freeze_backbone`.
     if model_args.freeze_backbone:
-        print(f'@tcm: In train(): Freezing backbone')
         model.model.requires_grad_(False)
 
     # pyre-fixme[16]: `DataClass` has no attribute `gradient_checkpointing`.
     if training_args.gradient_checkpointing:
-        print(f'@tcm: In train(): Enabling gradient checkpointing')
         if hasattr(model, "enable_input_require_grads"):
             model.enable_input_require_grads()
         else:
@@ -961,14 +963,14 @@ def train() -> None:
 
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
-    print(f'@tcm: In train(): loading tokenizer')
-    tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_args.input_model_filename,
-        # pyre-fixme[16]: `DataClass` has no attribute `model_max_length`.
-        model_max_length=training_args.model_max_length,
-        padding_side="right",
-        use_fast=False,
-    )
+    with MeasureResourceUsage():
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
+            model_args.input_model_filename,
+            # pyre-fixme[16]: `DataClass` has no attribute `model_max_length`.
+            model_max_length=training_args.model_max_length,
+            padding_side="right",
+            use_fast=False,
+        )
 
     # pyre-fixme[16]: `DataClass` has no attribute `version`.
     if model_args.version == "v0":
@@ -1042,6 +1044,7 @@ def train() -> None:
 
     # pyre-fixme[16]: `DataClass` has no attribute `vision_tower_aux_list`.
     if model_args.vision_tower_aux_list is not None:
+        logging.info(f'vision_tower_aux_list is not None')
         # pyre-fixme[16]: `DataClass` has no attribute `unfreeze_mm_vision_tower`.
         model_args.unfreeze_mm_vision_tower = training_args.unfreeze_mm_vision_tower
         model_args.vision_tower_aux_list = json.loads(model_args.vision_tower_aux_list)
@@ -1141,10 +1144,11 @@ def train() -> None:
     trainable_params = sum(
         p.numel() for p in model.get_model().parameters() if p.requires_grad
     )
-    print(f'@tcm: Total params: {total_params}')
-    print(f'@tcm: Trainable params: {trainable_params}')
+    logging.info(f'Total params: {total_params}')
+    logging.info(f'Trainable params: {trainable_params}')
 
-    model.to(torch.bfloat16)
+    with MeasureResourceUsage():
+        model.to(torch.bfloat16)
 
     # pyre-fixme
     def convert_bn_to_float(model):
