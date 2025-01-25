@@ -1,7 +1,7 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_qwen2"
-PATH_TO_JSON_TRAIN="/media02/nthuy/data/entube/EnTube/EnTube_train.json"
-PATH_TO_JSON_VAL="/media02/nthuy/data/entube/EnTube/EnTube_val.json"
+PATH_TO_JSON_TRAIN="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_1h_train.json"
+PATH_TO_JSON_VAL="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_1h_test.json"
 PATH_TO_FOLDER="/media02/nthuy/data/entube/EnTube"
 VERSION="qwen"
 
