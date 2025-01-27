@@ -1160,6 +1160,10 @@ def train() -> None:
 
     model = convert_bn_to_float(model)
 
+    logging.info(f'model.modules')
+    for name, submodule in model.named_modules():
+        print(name, submodule.__class__.__name__)
+
     # https://github.com/pytorch/pytorch/issues/100945#issuecomment-1540469987
     # Module's parameters wrapped by FullyShardedDataParallel must have same requires_grad for use_orig_params=False
     # When fine-tuning just a head on top of LLM, must set use_orig_params=True
@@ -1197,7 +1201,7 @@ def train() -> None:
         **data_module,
     )
     # check fsdp wrapper
-    print(trainer.model)
+    logging.info(f'trainer.model\n{trainer.model}')
 
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):

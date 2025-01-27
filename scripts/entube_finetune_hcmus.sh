@@ -5,7 +5,7 @@ PATH_TO_JSON_VAL="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_15m_test.
 PATH_TO_FOLDER="/media02/nthuy/data/entube/EnTube"
 VERSION="qwen"
 
-CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=3 --nnodes=1 \
+CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=2 --nnodes=1 \
     longvu/finetune.py \
     --output_dir "/tmp/longvu/" \
     --input_model_filename $PREV_STAGE_CHECKPOINT \
@@ -19,9 +19,9 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --bf16 True \
     --log_on_each_node False \
     --logging_dir /tmp/llava/test/ \
-    --num_train_epochs 5 \
+    --num_train_epochs 3 \
     --per_device_train_batch_size 1 \
-    --per_device_eval_batch_size 1 \
+    --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --save_steps 500 \
     --eval_steps 500 \
@@ -46,8 +46,8 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --tune_mm_mlp_adapter False \
     --freeze_mm_mlp_adapter False \
     --freeze_backbone True \
-    --fsdp "" \
-    --fsdp_transformer_layer_cls_to_wrap '' \
+    --fsdp "full_shard auto_wrap" \
+    --fsdp_transformer_layer_cls_to_wrap 'Qwen2DecoderLayer,SiglipEncoderLayer,Dinov2Layer' \
     --gradient_checkpointing True \
     --mm_projector_type sva \
     --image_token_len 144 \
