@@ -102,6 +102,8 @@ class MeasureResourceUsage:
 
     def __enter__(self):
         self.start_time = time.time()
+        self.start_allocated: Dict[torch.device, int] = {}
+        self.start_reserved: Dict[torch.device, int] = {}
         for device in self.devices:
             self.start_allocated[device] = torch.cuda.memory_allocated(device)
             self.start_reserved[device] = torch.cuda.memory_reserved(device)
