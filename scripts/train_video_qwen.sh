@@ -42,9 +42,9 @@ longvu/train.py \
 --lazy_preprocess True \
 --tune_mm_mlp_adapter False \
 --freeze_mm_mlp_adapter False \
---freeze_backbone False \
+--freeze_backbone True \
 --fsdp "full_shard auto_wrap" \
---fsdp_transformer_layer_cls_to_wrap 'Qwen2DecoderLayer' \
+--fsdp_transformer_layer_cls_to_wrap 'Qwen2DecoderLayer,SiglipEncoderLayer,Dinov2Layer' \
 --gradient_checkpointing True \
 --mm_projector_type sva \
 --image_token_len 144 \

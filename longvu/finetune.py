@@ -1196,6 +1196,8 @@ def train() -> None:
         callbacks=callbacks,
         **data_module,
     )
+    # check fsdp wrapper
+    print(trainer.model)
 
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
