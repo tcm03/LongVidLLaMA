@@ -1,7 +1,7 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_qwen2"
-PATH_TO_JSON_TRAIN="/root/thesis/EnTube_preprocessing/data/EnTube_15m_train.json"
-PATH_TO_JSON_VAL="/root/thesis/EnTube_preprocessing/data/EnTube_15m_test.json"
+PATH_TO_JSON_TRAIN="/root/thesis/EnTube_preprocessing/data/EnTube_20m_train.json"
+PATH_TO_JSON_VAL="/root/thesis/EnTube_preprocessing/data/EnTube_20m_test.json"
 PATH_TO_FOLDER="/root/thesis/EnTube"
 VERSION="qwen"
 
@@ -23,10 +23,10 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
-    --save_steps 500 \
-    --eval_steps 1 \
+    --save_steps 100 \
+    --eval_steps 100 \
     --logging_steps 1 \
-    --evaluation_strategy "steps" \
+    --evaluation_strategy "epoch" \
     --save_strategy "steps" \
     --report_to "tensorboard" \
     --save_total_limit 1 \

@@ -159,11 +159,12 @@ class TrainingArguments(transformers.TrainingArguments):
     num_train_epochs: int = field(default=5)
     per_device_train_batch_size: int = field(default=1)
     per_device_eval_batch_size: int = field(default=1)
-    evaluation_strategy: Optional[str] = field(default="steps")
-    eval_steps: Optional[int] = field(default=1)
+    evaluation_strategy: Optional[str] = field(default="epoch")
+    eval_steps: Optional[int] = field(default=100)
     save_strategy: Optional[str] = field(default="epoch")
+    save_steps: Optional[int] = field(default=100)
     report_to: Optional[str] = field(default="tensorboard")
-
+    
 
 def get_local_rank() -> int:
     if os.environ.get("LOCAL_RANK"):
@@ -438,19 +439,19 @@ def compute_metrics(eval_pred):
     
     # Unpack predictions and labels
     logits, labels = eval_pred.predictions, eval_pred.label_ids
-    logging.debug(f'logits.shape={logits.shape}, labels={labels}')
+    logging.info(f'logits.shape={logits.shape}, labels={labels}')
     
     # Get predicted class by taking the argmax of logits
     predictions = logits.argmax(axis=-1)
-    logging.debug(f'predictions={predictions}')
+    logging.info(f'predictions={predictions}')
     
     # Compute accuracy
     acc = accuracy_score(labels, predictions)
-    logging.debug(f'acc={acc}')
+    logging.info(f'acc={acc}')
     
     # Compute precision, recall, and F1-score
     precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
-    logging.debug(f'precision={precision}, recall={recall}, f1={f1}')
+    logging.info(f'precision={precision}, recall={recall}, f1={f1}')
     
     # Return metrics as a dictionary
     return {
