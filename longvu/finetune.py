@@ -258,7 +258,7 @@ def prepare_multimodal_data(
     image_aux_token_len_list=[192 * 192],  # pyre-fixme[2]
     max_length=2048,  # pyre-fixme[2]
 ):
-    logging.info(f'In prepare_multimodal_data()')
+    logging.debug(f'In prepare_multimodal_data()')
     input_ids_im_replaced = []
     labels_im_replaced = []
     attention_mask_im_replaced = []
@@ -438,19 +438,19 @@ def compute_metrics(eval_pred):
     
     # Unpack predictions and labels
     logits, labels = eval_pred.predictions, eval_pred.label_ids
-    logging.info(f'logits.shape={logits.shape}, labels={labels}')
+    logging.debug(f'logits.shape={logits.shape}, labels={labels}')
     
     # Get predicted class by taking the argmax of logits
     predictions = logits.argmax(axis=-1)
-    logging.info(f'predictions={predictions}')
+    logging.debug(f'predictions={predictions}')
     
     # Compute accuracy
     acc = accuracy_score(labels, predictions)
-    logging.info(f'acc={acc}')
+    logging.debug(f'acc={acc}')
     
     # Compute precision, recall, and F1-score
     precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
-    logging.info(f'precision={precision}, recall={recall}, f1={f1}')
+    logging.debug(f'precision={precision}, recall={recall}, f1={f1}')
     
     # Return metrics as a dictionary
     return {
@@ -605,7 +605,7 @@ class LazySupervisedDataset(Dataset):
                                     vr.get_avg_fps() / self.data_args.video_fps
                                 )
                                 frame_idx = [i for i in range(0, len(vr), sample_fps)]
-                                logging.info(f'read {len(frame_idx)} frames')
+                                logging.debug(f'read {len(frame_idx)} frames')
                                 image = vr.get_batch(frame_idx).asnumpy() # shape: (# frames, H, W, C)
                                 image_size = image[0].shape[:2]
                         if self.data_args.uniform_sample:
@@ -1046,7 +1046,6 @@ def train() -> None:
 
     # pyre-fixme[16]: `DataClass` has no attribute `vision_tower_aux_list`.
     if model_args.vision_tower_aux_list is not None:
-        logging.info(f'vision_tower_aux_list is not None')
         # pyre-fixme[16]: `DataClass` has no attribute `unfreeze_mm_vision_tower`.
         model_args.unfreeze_mm_vision_tower = training_args.unfreeze_mm_vision_tower
         model_args.vision_tower_aux_list = json.loads(model_args.vision_tower_aux_list)
@@ -1162,10 +1161,6 @@ def train() -> None:
 
     model = convert_bn_to_float(model)
 
-    logging.info(f'model.modules')
-    for name, submodule in model.named_modules():
-        print(name, submodule.__class__.__name__)
-
     # https://github.com/pytorch/pytorch/issues/100945#issuecomment-1540469987
     # Module's parameters wrapped by FullyShardedDataParallel must have same requires_grad for use_orig_params=False
     # When fine-tuning just a head on top of LLM, must set use_orig_params=True
@@ -1203,7 +1198,7 @@ def train() -> None:
         **data_module,
     )
     # check fsdp wrapper
-    logging.info(f'trainer.model\n{trainer.model}')
+    logging.debug(f'trainer.model\n{trainer.model}')
 
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):

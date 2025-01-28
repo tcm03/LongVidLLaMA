@@ -674,7 +674,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                 else:
                     sequence_lengths = -1
 
-            pooled_logits = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
+            pooled_logits = logits[torch.arange(batch_size, device=logits.device), [sequence_lengths]]
 
             loss = None
             if labels is not None:

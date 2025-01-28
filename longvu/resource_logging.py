@@ -70,17 +70,17 @@ def measure_resource_usage(devices: List[torch.device] = get_cuda_devices()):
                     except Exception:
                         continue  # Skip problematic frames
 
-                logging.info(f'File: {caller_filename}, Line: {caller_lineno}')
-                logging.info(f'Time: {end_time - start_time:.2f} seconds')
+                logging.debug(f'File: {caller_filename}, Line: {caller_lineno}')
+                logging.debug(f'Time: {end_time - start_time:.2f} seconds')
                 for device in devices:
-                    logging.info(f'Device: {device}')
-                    logging.info(f'Allocated before: {start_allocated[device]/1e6:.2f} MB')
-                    logging.info(f'Allocated after:  {end_allocated[device]/1e6:.2f} MB')
-                    logging.info(f'Net allocated change:  {(end_allocated[device] - start_allocated[device])/1e6:.2f} MB')
-                    logging.info(f'Reserved before:  {start_reserved[device]/1e6:.2f} MB')
-                    logging.info(f'Reserved after:   {end_reserved[device]/1e6:.2f} MB')
-                    logging.info(f'Net reserved change:   {(end_reserved[device] - start_reserved[device])/1e6:.2f} MB')
-                    logging.info(f'Peak allocated:         {peak_allocated[device]/1e6:.2f} MB')
+                    logging.debug(f'Device: {device}')
+                    logging.debug(f'Allocated before: {start_allocated[device]/1e6:.2f} MB')
+                    logging.debug(f'Allocated after:  {end_allocated[device]/1e6:.2f} MB')
+                    logging.debug(f'Net allocated change:  {(end_allocated[device] - start_allocated[device])/1e6:.2f} MB')
+                    logging.debug(f'Reserved before:  {start_reserved[device]/1e6:.2f} MB')
+                    logging.debug(f'Reserved after:   {end_reserved[device]/1e6:.2f} MB')
+                    logging.debug(f'Net reserved change:   {(end_reserved[device] - start_reserved[device])/1e6:.2f} MB')
+                    logging.debug(f'Peak allocated:         {peak_allocated[device]/1e6:.2f} MB')
 
                 return result
             except Exception as e:
@@ -136,16 +136,16 @@ class MeasureResourceUsage:
                     continue  # Skip problematic frames
 
             # Log memory and time usage with caller info
-            logging.info(f'File: {caller_filename}, Line: {caller_lineno}')
-            logging.info(f'Time: {end_time - self.start_time:.2f} seconds')
+            logging.debug(f'File: {caller_filename}, Line: {caller_lineno}')
+            logging.debug(f'Time: {end_time - self.start_time:.2f} seconds')
             for device in self.devices:
-                logging.info(f'Device: {device}')
-                logging.info(f'Allocated before block: {self.start_allocated[device]/1e6:.2f} MB')
-                logging.info(f'Allocated after block:  {end_allocated[device]/1e6:.2f} MB')
-                logging.info(f'Net allocated change:  {(end_allocated[device] - self.start_allocated[device])/1e6:.2f} MB')
-                logging.info(f'Reserved before block:  {self.start_reserved[device]/1e6:.2f} MB')
-                logging.info(f'Reserved after block:   {end_reserved[device]/1e6:.2f} MB')
-                logging.info(f'Net reserved change:  {(end_reserved[device] - self.start_reserved[device])/1e6:.2f} MB')
-                logging.info(f'Peak allocated:         {peak_allocated[device]/1e6:.2f} MB')
+                logging.debug(f'Device: {device}')
+                logging.debug(f'Allocated before block: {self.start_allocated[device]/1e6:.2f} MB')
+                logging.debug(f'Allocated after block:  {end_allocated[device]/1e6:.2f} MB')
+                logging.debug(f'Net allocated change:  {(end_allocated[device] - self.start_allocated[device])/1e6:.2f} MB')
+                logging.debug(f'Reserved before block:  {self.start_reserved[device]/1e6:.2f} MB')
+                logging.debug(f'Reserved after block:   {end_reserved[device]/1e6:.2f} MB')
+                logging.debug(f'Net reserved change:  {(end_reserved[device] - self.start_reserved[device])/1e6:.2f} MB')
+                logging.debug(f'Peak allocated:         {peak_allocated[device]/1e6:.2f} MB')
         except Exception as e:
             logging.error(f"Error in MeasureResourceUsage: {e}")
