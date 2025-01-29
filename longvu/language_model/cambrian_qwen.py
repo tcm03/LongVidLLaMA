@@ -675,6 +675,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                     sequence_lengths = -1
 
             pooled_logits = logits[torch.arange(batch_size, device=logits.device), [sequence_lengths]]
+            logging.info(f'pooled_logits.shape: {pooled_logits.shape}')
 
             loss = None
             if labels is not None:
@@ -684,6 +685,7 @@ class CambrianQwenForSequenceClassification(Qwen2ForSequenceClassification, Camb
                     target = labels.view(-1),
                     ignore_index = IGNORE_INDEX
                 )
+                logging.info(f'loss:\n{loss}')
 
             if not return_dict:
                 output = (pooled_logits,) + outputs[1:]
