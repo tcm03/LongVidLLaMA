@@ -1208,7 +1208,7 @@ def train() -> None:
     else:
         trainer.train()
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
-    trainer.evaluate()
+    print(trainer.evaluate())
     trainer.save_state()
 
     safe_save_model_for_hf_trainer(
