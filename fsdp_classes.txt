@@ -1,0 +1,2 @@
+--fsdp "full_shard auto_wrap" \
+--fsdp_transformer_layer_cls_to_wrap 'Qwen2DecoderLayer,VisionCrossAttentionLayer,MultiKVCrossAttention,Qwen2MLP,Embedding' \
