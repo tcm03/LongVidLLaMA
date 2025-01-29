@@ -2,7 +2,7 @@
 #SBATCH --job-name=imptask          # Job name
 #SBATCH --partition=batch           # Partition to use
 #SBATCH --nodelist=gpu01      # Specify gpu02
-#SBATCH --gres=gpu:2                # Request 4 GPUs per node
+#SBATCH --gres=gpu:4                # Request 4 GPUs per node
 #SBATCH --ntasks-per-node=1         # One task per node (torchrun manages GPUs)
 #SBATCH --cpus-per-task=160          # Request all CPUs on each node (48 CPUs per node)
 #SBATCH --mem=240GB                 # Request total memory on each node
