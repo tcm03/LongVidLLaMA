@@ -1,11 +1,11 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_qwen2"
-PATH_TO_JSON_TRAIN="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_15m_train.json"
-PATH_TO_JSON_VAL="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_15m_test.json"
+PATH_TO_JSON_TRAIN="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_1m_train.json"
+PATH_TO_JSON_VAL="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_1m_test.json"
 PATH_TO_FOLDER="/media02/nthuy/data/entube/EnTube"
 VERSION="qwen"
 
-CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=4 --nnodes=1 \
+CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=1 --nnodes=1 \
     longvu/finetune.py \
     --output_dir "/tmp/longvu/" \
     --input_model_filename $PREV_STAGE_CHECKPOINT \
@@ -19,14 +19,14 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --bf16 True \
     --log_on_each_node False \
     --logging_dir /tmp/llava/test/ \
-    --num_train_epochs 2 \
+    --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
-    --per_device_eval_batch_size 4 \
+    --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
-    --save_steps 500 \
-    --eval_steps 1 \
-    --logging_steps 10 \
-    --evaluation_strategy "steps" \
+    --save_steps 200 \
+    --eval_steps 200 \
+    --logging_steps 1 \
+    --evaluation_strategy "epoch" \
     --save_strategy "steps" \
     --report_to "tensorboard" \
     --save_total_limit 1 \
@@ -46,8 +46,8 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --tune_mm_mlp_adapter False \
     --freeze_mm_mlp_adapter False \
     --freeze_backbone True \
-    --fsdp "full_shard auto_wrap" \
-    --fsdp_transformer_layer_cls_to_wrap 'Qwen2DecoderLayer,VisionCrossAttentionLayer,MultiKVCrossAttention,Qwen2MLP,Embedding' \
+    --fsdp "" \
+    --fsdp_transformer_layer_cls_to_wrap '' \
     --gradient_checkpointing True \
     --mm_projector_type sva \
     --image_token_len 144 \
