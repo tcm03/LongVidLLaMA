@@ -436,7 +436,7 @@ def compute_metrics(eval_pred):
     Returns:
     dict: A dictionary with metric names as keys and their values.
     """
-    
+    print('@tcm: In compute_metrics()')
     # Unpack predictions and labels
     logits, labels = eval_pred.predictions, eval_pred.label_ids
     logging.info(f'logits.shape={logits.shape}, labels={labels}')
