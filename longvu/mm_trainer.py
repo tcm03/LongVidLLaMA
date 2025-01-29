@@ -506,6 +506,9 @@ class LLaVATrainer(Trainer):
         How the loss is computed by Trainer. By default, all models return the loss in the first element.
 
         Subclass and override for custom behavior.
+
+        @tcm:
+        https://discuss.huggingface.co/t/metrics-for-training-set-in-trainer/2461
         """
         # inputs['labels'] = tensor([2])
         if self.label_smoother is not None and "labels" in inputs:
