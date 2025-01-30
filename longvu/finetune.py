@@ -15,7 +15,7 @@ import pathlib
 import uuid
 from dataclasses import dataclass, field
 from logging import Logger
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, Tuple, Optional, Sequence
 
 import numpy as np
 
@@ -160,10 +160,12 @@ class TrainingArguments(transformers.TrainingArguments):
     per_device_train_batch_size: int = field(default=1)
     per_device_eval_batch_size: int = field(default=1)
     evaluation_strategy: Optional[str] = field(default="epoch")
-    eval_steps: Optional[int] = field(default=100)
+    eval_steps: Optional[int] = field(default=200)
     save_strategy: Optional[str] = field(default="epoch")
-    save_steps: Optional[int] = field(default=100)
+    save_steps: Optional[int] = field(default=200)
     report_to: Optional[str] = field(default="tensorboard")
+
+    label_names: Optional[Tuple[str]] = field(default=())
 
 
 def get_local_rank() -> int:
