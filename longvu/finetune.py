@@ -117,7 +117,8 @@ class ModelArguments:
 
 @dataclass
 class DataArguments:
-    data_path: Optional[str] = field(default=None)
+    data_train_path: Optional[str] = field(default=None)
+    data_val_path: Optional[str] = field(default=None)
     lazy_preprocess: bool = False
     is_multimodal: bool = False
     image_position: Optional[int] = field(default=91)
@@ -797,7 +798,10 @@ def make_supervised_data_module(
 ) -> Dict:  # pyre-fixme
     """Make dataset and collator for supervised fine-tuning."""
     train_dataset = LazySupervisedDataset(
-        tokenizer=tokenizer, data_path=data_args.data_path, data_args=data_args
+        tokenizer=tokenizer, data_path=data_args.data_train_path, data_args=data_args
+    )
+    eval_dataset = LazySupervisedDataset(
+        tokenizer=tokenizer, data_path=data_args.data_val_path, data_args=data_args
     )
     data_collator_kwargs = {
         "tokenizer": tokenizer,
@@ -819,7 +823,7 @@ def make_supervised_data_module(
     data_collator = DataCollatorForSupervisedDataset(**data_collator_kwargs)  # pyre-fixme
 
     return dict(
-        train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator
+        train_dataset=train_dataset, eval_dataset=eval_dataset, data_collator=data_collator
     )
 
 
