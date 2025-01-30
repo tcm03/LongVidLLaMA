@@ -58,8 +58,14 @@ import pandas as pd
 
 from transformers.integrations import TensorBoardCallback
 
+import logging
+
 TENSORBOARD_LOG_DIR_NAME: str = "tensorboard_logs"
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(filename)s:%(lineno)d - %(funcName)s - %(levelname)s - %(message)s"
+)
 
 @dataclass
 class ModelArguments:
@@ -840,7 +846,7 @@ def train() -> None:
         # @tcm: load pre-trained longvu from checkpoint longvu_qwen2
         if "cambrian" in model_args.input_model_filename.lower() or "longvu_qwen2" in model_args.input_model_filename.lower():
             if "qwen" in model_args.input_model_filename.lower():
-                model = CambrianQwenForSequenceClassification.from_pretrained(  # pyre-fixme
+                model = CambrianQwenForCausalLM.from_pretrained(  # pyre-fixme
                     model_args.input_model_filename,  # pyre-fixme
                     torch_dtype=(torch.bfloat16 if training_args.bf16 else None),  # pyre-fixme
                     **bnb_model_from_pretrained_args,
@@ -1060,8 +1066,8 @@ def train() -> None:
     trainable_params = sum(
         p.numel() for p in model.get_model().parameters() if p.requires_grad
     )
-    print(f'@tcm: Total params: {total_params}')
-    print(f'@tcm: Trainable params: {trainable_params}')
+    logging.info(f'Total params: {total_params}')
+    logging.info(f'Trainable params: {trainable_params}')
 
     model.to(torch.bfloat16)
 
