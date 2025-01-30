@@ -441,19 +441,19 @@ def compute_metrics(eval_pred):
     print('@tcm: In compute_metrics()')
     # Unpack predictions and labels
     logits, labels = eval_pred.predictions, eval_pred.label_ids
-    logging.info(f'logits.shape={logits.shape}, labels={labels}')
+    # logging.info(f'logits.shape={logits.shape}, labels={labels}')
     
     # Get predicted class by taking the argmax of logits
     predictions = logits.argmax(axis=-1)
-    logging.info(f'predictions={predictions}')
+    # logging.info(f'predictions={predictions}')
     
     # Compute accuracy
     acc = accuracy_score(labels, predictions)
-    logging.info(f'acc={acc}')
+    # logging.info(f'acc={acc}')
     
     # Compute precision, recall, and F1-score
     precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
-    logging.info(f'precision={precision}, recall={recall}, f1={f1}')
+    # logging.info(f'precision={precision}, recall={recall}, f1={f1}')
     
     # Return metrics as a dictionary
     return {
