@@ -1,5 +1,5 @@
 
-PREV_STAGE_CHECKPOINT="./checkpoints/longvu_qwen2"
+PREV_STAGE_CHECKPOINT="./checkpoints/longvu_entube"
 PATH_TO_JSON_TRAIN="/root/thesis/EnTube_preprocessing/data/EnTube_20m_train.json"
 PATH_TO_JSON_VAL="/root/thesis/EnTube_preprocessing/data/EnTube_20m_test.json"
 PATH_TO_FOLDER="/root/thesis/EnTube"
@@ -56,5 +56,5 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --lowres_token 8 \
     --video_fps 1 \
     --highres True \
-    --drop_threshold 0.75
-
+    --drop_threshold 0.75 \
+    --label_names "labels"
