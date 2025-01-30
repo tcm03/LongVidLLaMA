@@ -17,15 +17,9 @@ from transformers.trainer import ALL_LAYERNORM_LAYERS, get_parameter_names, has_
 # pyre-fixme[2]: Parameter must be annotated.
 def split_to_even_chunks(indices, lengths, num_chunks):
     """
-    Purpose:
-    This function splits the list of indices into num_chunks such that each chunk has a roughly equal cumulative length.
-
-    How it works:
-
-    If the total number of indices cannot be evenly divided by num_chunks, it uses a round-robin approach to distribute the indices.
-    It keeps track of the cumulative length of each chunk (chunks_lengths) and assigns new indices to the chunk with the smallest total length to ensure balanced distribution.
+    Split a list of indices into `chunks` chunks of roughly equal lengths.
     """
-    
+
     if len(indices) % num_chunks != 0:
         return [indices[i::num_chunks] for i in range(num_chunks)]
 
@@ -48,10 +42,8 @@ def split_to_even_chunks(indices, lengths, num_chunks):
 def get_length_grouped_indices(
     lengths, batch_size, world_size, generator=None, merge=True
 ):
-    print(f'@tcm: In get_length_grouped_indices()')
     # We need to use torch for the random part as a distributed sampler will set the random seed for torch.
     indices = torch.randperm(len(lengths), generator=generator)
-    print(f'@tcm: In get_length_grouped_indices(): lengths={lengths}, batch_size={batch_size}, world_size={world_size}, generator={generator}, merge={merge}')
     megabatch_size = world_size * batch_size
     megabatches = [
         indices[i : i + megabatch_size].tolist()
@@ -74,13 +66,10 @@ def get_length_grouped_indices(
 def get_modality_length_grouped_indices(
     lengths, batch_size, world_size, generator=None
 ):
-    print()
-    print(f'@tcm: In get_modality_length_grouped_indices()')
     # We need to use torch for the random part as a distributed sampler will set the random seed for torch.
     assert all(l != 0 for l in lengths), "Should not have zero length."
     if all(l > 0 for l in lengths) or all(l < 0 for l in lengths):
         # all samples are in the same modality
-        print(f'@tcm: In get_modality_length_grouped_indices(): all samples are in the same modality')
         return get_length_grouped_indices(
             lengths, batch_size, world_size, generator=generator
         )
@@ -151,9 +140,6 @@ class LengthGroupedSampler(Sampler):
         return len(self.lengths)
 
     def __iter__(self):
-        print()
-        print(f'@tcm: In LengthGroupedSampler.__iter__()')
-        print(f'@tcm: In LengthGroupedSampler.__iter__(): self.lengths={self.lengths}, self.batch_size={self.batch_size}, self.world_size={self.world_size}, self.group_by_modality={self.group_by_modality}')
         if self.group_by_modality:
             indices = get_modality_length_grouped_indices(
                 self.lengths, self.batch_size, self.world_size, generator=self.generator
@@ -213,7 +199,6 @@ class LLaVATrainer(Trainer):
 
         # pyre-fixme[16]: `LLaVATrainer` has no attribute `args`.
         if self.args.group_by_modality_length:
-            print(f'@tcm: In _get_train_sampler(): group_by_modality_length true')
             lengths = self.train_dataset.modality_lengths
             return LengthGroupedSampler(
                 # self.args.train_batch_size * self.args.gradient_accumulation_steps, # TODO: seems that we should not have gradient_accumulation_steps
