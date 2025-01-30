@@ -164,7 +164,7 @@ class TrainingArguments(transformers.TrainingArguments):
     save_strategy: Optional[str] = field(default="epoch")
     save_steps: Optional[int] = field(default=100)
     report_to: Optional[str] = field(default="tensorboard")
-    
+
 
 def get_local_rank() -> int:
     if os.environ.get("LOCAL_RANK"):

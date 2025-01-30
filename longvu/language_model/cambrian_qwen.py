@@ -32,6 +32,7 @@ from transformers.modeling_outputs import (
     CausalLMOutputWithPast,
 )
 from transformers.utils import logging as tf_logging
+from transformers.modeling_outputs import SequenceClassifierOutputWithPast
 
 from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
 
