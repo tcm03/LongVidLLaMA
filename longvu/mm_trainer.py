@@ -506,7 +506,10 @@ class LLaVATrainer(Trainer):
         else:
             labels = None
         outputs = model(**inputs)
-        logging.info(f'outputs={outputs}')
+        if isinstance(outputs, tuple) and len(outputs) == 2:
+            logging.info(f'outputs[1].shape={outputs[1].shape}')
+        decoded_tokens = self.tokenizer.decode(outputs[1])
+        logging.info(f'decoded_tokens={decoded_tokens}')
         # Save past state if it exists
         # TODO: this needs to be fixed and made cleaner later.
         if self.args.past_index >= 0:
