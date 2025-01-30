@@ -56,5 +56,5 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --lowres_token 8 \
     --video_fps 1 \
     --highres True \
-    --drop_threshold 0.75
-
+    --drop_threshold 0.75 \
+    --label_names "labels"
