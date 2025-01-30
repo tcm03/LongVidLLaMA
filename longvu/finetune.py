@@ -37,7 +37,7 @@ from longvu.constants import (
     IMAGE_TOKEN_INDEX,
 )
 from longvu.language_model.cambrian_llama import CambrianLlamaForCausalLM
-from longvu.language_model.cambrian_qwen import CambrianQwenForCausalLM, CambrianQwenForSequenceClassification
+from longvu.language_model.cambrian_qwen import CambrianQwenForCausalLM
 from longvu.mm_datautils import (
     preprocess,
     preprocess_multimodal,
