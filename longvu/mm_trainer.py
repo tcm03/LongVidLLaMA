@@ -600,6 +600,8 @@ class LLaVATrainer(Trainer):
             Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]: A tuple with the loss,
             logits and labels (each being optional).
         """
+        logging.info(f'label_names={self.label_names}')
+        logging.info(f'inputs={inputs}')
         has_labels = False if len(self.label_names) == 0 else all(inputs.get(k) is not None for k in self.label_names)
         logging.info(f'has_labels={has_labels}')
         # For CLIP-like models capable of returning loss values.
