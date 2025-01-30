@@ -438,14 +438,14 @@ def compute_metrics(eval_pred):
     Returns:
     dict: A dictionary with metric names as keys and their values.
     """
-    print('@tcm: In compute_metrics()')
+
     # Unpack predictions and labels
     logits, labels = eval_pred.predictions, eval_pred.label_ids
-    # logging.info(f'logits.shape={logits.shape}, labels={labels}')
+    logging.info(f'logits.shape={logits.shape}, labels={labels}')
     
     # Get predicted class by taking the argmax of logits
     predictions = logits.argmax(axis=-1)
-    # logging.info(f'predictions={predictions}')
+    logging.info(f'predictions={predictions}')
     
     # Compute accuracy
     acc = accuracy_score(labels, predictions)
