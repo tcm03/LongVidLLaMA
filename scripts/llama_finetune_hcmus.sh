@@ -1,12 +1,12 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_llama3_2"
-PATH_TO_JSON_TRAIN="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_2m30_train.json"
-PATH_TO_JSON_VAL="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_2m30_test.json"
+PATH_TO_JSON_TRAIN="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_10m_train.json"
+PATH_TO_JSON_VAL="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_10m_test.json"
 PATH_TO_FOLDER="/media02/nthuy/data/entube/EnTube/data"
 VERSION="llama3"
 
 CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=1 --nnodes=1 \
-    longvu/finetune.py \
+    longvu/finetune_llama.py \
     --output_dir "/tmp/longvu/" \
     --input_model_filename $PREV_STAGE_CHECKPOINT \
     --output_model_filename "./checkpoints/cambrian_llama3_2/" \
@@ -30,7 +30,7 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --save_strategy "steps" \
     --report_to "tensorboard" \
     --save_total_limit 1 \
-    --learning_rate 5e-6 \
+    --learning_rate 4.6e-6 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
@@ -46,8 +46,8 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --tune_mm_mlp_adapter False \
     --freeze_mm_mlp_adapter False \
     --freeze_backbone True \
-    --fsdp "" \
-    --fsdp_transformer_layer_cls_to_wrap '' \
+    --fsdp "full_shard auto_wrap" \
+    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer' \
     --gradient_checkpointing True \
     --mm_projector_type sva \
     --image_token_len 144 \

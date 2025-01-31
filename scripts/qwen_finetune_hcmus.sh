@@ -6,7 +6,7 @@ PATH_TO_FOLDER="/media02/nthuy/data/entube/EnTube/data"
 VERSION="qwen"
 
 CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=1 --nnodes=1 \
-    longvu/finetune.py \
+    longvu/finetune_qwen.py \
     --output_dir "/tmp/longvu/" \
     --input_model_filename $PREV_STAGE_CHECKPOINT \
     --output_model_filename "./checkpoints/longvu_entube/" \
