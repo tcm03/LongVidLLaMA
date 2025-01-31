@@ -506,9 +506,9 @@ class LLaVATrainer(Trainer):
         else:
             labels = None
 
+        special_tok_ids = list(range(151643, 151647)) + [198]
         if isinstance(inputs['input_ids'], torch.Tensor):
             logging.info(f'inputs[input_ids].shape={inputs["input_ids"].shape}')
-            special_tok_ids = list(range(151643, 151647))
             for inp_ids in inputs['input_ids']:
                 logging.info(f'inp_ids={inp_ids}')
                 for i in range(len(inp_ids) - 1, 0, -1):
