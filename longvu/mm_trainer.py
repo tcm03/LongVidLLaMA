@@ -506,11 +506,17 @@ class LLaVATrainer(Trainer):
         else:
             labels = None
         outputs = model(**inputs)
+
         assert isinstance(outputs, tuple) and len(outputs) == 2, '@tcm: Expected: (loss, output tensor)'
         logits = outputs[1]
-        token_ids = logits.argmax(dim=-1)
-        decoded_tokens = self.tokenizer.batch_decode(token_ids, skip_special_tokens=True)
+        output_ids = logits.argmax(dim=-1)
+        assert len(output_ids) == len(inputs['input_ids']), '@tcm: output_ids and inputs[input_ids] should have the same length'
+        generated_ids = []
+        for input_ids, token_ids in zip(inputs['input_ids'], output_ids):
+            generated_ids.append(token_ids[len(input_ids):])
+        decoded_tokens = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
         logging.info(f'decoded_tokens={decoded_tokens}')
+        
         # Save past state if it exists
         # TODO: this needs to be fixed and made cleaner later.
         if self.args.past_index >= 0:
