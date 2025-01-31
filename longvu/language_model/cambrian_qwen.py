@@ -226,6 +226,8 @@ class CambrianQwenForCausalLM(Qwen2ForCausalLM, CambrianMetaForCausalLM):
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
         # Initialize weights and apply final processing
         self.post_init()
+        # try manual weight tying
+        self.lm_head.weight = self.model.embed_tokens.weight
 
     def get_model(self):
         return self.model
@@ -254,6 +256,8 @@ class CambrianQwenForCausalLM(Qwen2ForCausalLM, CambrianMetaForCausalLM):
         input_image_features = None
         highres_image_features = None
         frame_split_sizes = None
+        if isinstance(images, list) and isinstance(images[0], torch.Tensor):
+            logging.info(f'images[0].shape: {images[0].shape}')
 
         if inputs_embeds is None:
             (
