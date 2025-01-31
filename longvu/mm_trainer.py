@@ -509,7 +509,7 @@ class LLaVATrainer(Trainer):
         assert isinstance(outputs, tuple) and len(outputs) == 2, '@tcm: Expected: (loss, output tensor)'
         logits = outputs[1]
         token_ids = logits.argmax(dim=-1)
-        decoded_tokens = self.tokenizer.decode(token_ids)
+        decoded_tokens = self.tokenizer.batch_decode(token_ids, skip_special_tokens=True)
         logging.info(f'decoded_tokens={decoded_tokens}')
         # Save past state if it exists
         # TODO: this needs to be fixed and made cleaner later.
