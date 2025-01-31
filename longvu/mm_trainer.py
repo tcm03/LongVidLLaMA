@@ -515,7 +515,7 @@ class LLaVATrainer(Trainer):
                     if inp_ids[i] in special_tok_ids:
                         continue
                     else:
-                        logging.info(f'Last non-special token id={inp_ids[i]} at position={i}')
+                        logging.info(f'Last non-special input_ids id={inp_ids[i]} at position={i}')
                         break
         outputs = model(**inputs)
 
@@ -525,9 +525,14 @@ class LLaVATrainer(Trainer):
         assert len(output_ids) == len(inputs['input_ids']), '@tcm: output_ids and inputs[input_ids] should have the same length'
         generated_ids = []
         for input_ids, token_ids in zip(inputs['input_ids'], output_ids):
-            logging.info(f'len(input_ids)={len(input_ids)}')
-            logging.info(f'len(token_ids)={len(token_ids)}')
-            generated_ids.append(token_ids[len(input_ids):])
+            logging.info(f'token_ids={token_ids}')
+            for i in range(len(token_ids) - 1, 0, -1):
+                if token_ids[i] in special_tok_ids:
+                    continue
+                else:
+                    logging.info(f'Last non-special output_ids id={token_ids[i]} at position={i}')
+                    break
+            generated_ids.append(token_ids[i:])
         decoded_tokens = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
         logging.info(f'decoded_tokens={decoded_tokens}')
         
