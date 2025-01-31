@@ -28,7 +28,8 @@ from transformers.modeling_outputs import (
     BaseModelOutputWithPast,
     CausalLMOutputWithPast,
 )
-from transformers.utils import logging
+from transformers.utils import logging as lgging
+import logging
 
 from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
 
@@ -36,7 +37,7 @@ IS_XLA_AVAILABLE = False
 
 from transformers import Qwen2Config, Qwen2ForCausalLM, Qwen2Model
 
-logger = logging.get_logger(__name__)
+logger = lgging.get_logger(__name__)
 
 
 class CambrianConfig(Qwen2Config):
