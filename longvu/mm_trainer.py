@@ -505,6 +505,10 @@ class LLaVATrainer(Trainer):
             labels = inputs.pop("labels")
         else:
             labels = None
+
+        if isinstance(inputs['input_ids'], torch.Tensor):
+            logging.info(f'inputs[input_ids].shape={inputs["input_ids"].shape}')
+            logging.info(f'last: {inputs["input_ids"][-1][-1]}')
         outputs = model(**inputs)
 
         assert isinstance(outputs, tuple) and len(outputs) == 2, '@tcm: Expected: (loss, output tensor)'
