@@ -506,7 +506,7 @@ class LLaVATrainer(Trainer):
         else:
             labels = None
 
-        special_tok_ids = list(range(151643, 151647)) + [198]
+        special_tok_ids = list(range(151643, 151647))
         if isinstance(inputs['input_ids'], torch.Tensor):
             logging.info(f'inputs[input_ids].shape={inputs["input_ids"].shape}')
             for inp_ids in inputs['input_ids']:
@@ -523,18 +523,23 @@ class LLaVATrainer(Trainer):
         logits = outputs[1]
         output_ids = logits.argmax(dim=-1)
         assert len(output_ids) == len(inputs['input_ids']), '@tcm: output_ids and inputs[input_ids] should have the same length'
-        generated_ids = []
-        for input_ids, token_ids in zip(inputs['input_ids'], output_ids):
-            logging.info(f'token_ids={token_ids}')
-            for i in range(len(token_ids) - 1, 0, -1):
-                if token_ids[i] in special_tok_ids:
-                    continue
-                else:
-                    logging.info(f'Last non-special output_ids id={token_ids[i]} at position={i}')
-                    break
-            generated_ids.append(token_ids[i:])
-        decoded_tokens = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-        logging.info(f'decoded_tokens={decoded_tokens}')
+        # generated_ids = []
+        # for input_ids, token_ids in zip(inputs['input_ids'], output_ids):
+        #     logging.info(f'token_ids={token_ids}')
+        #     for i in range(len(token_ids) - 1, 0, -1):
+        #         if token_ids[i] in special_tok_ids:
+        #             continue
+        #         else:
+        #             logging.info(f'Last non-special output_ids id={token_ids[i]} at position={i}')
+        #             break
+        #     generated_ids.append(token_ids[i:])
+        # decoded_tokens = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+        # logging.info(f'decoded_tokens={decoded_tokens}')
+        input_ids = inputs['input_ids'][0]
+        decoded_inputs = self.tokenizer.batch_decode([input_ids[:100]])
+        decoded_outputs = self.tokenizer.batch_decode([output_ids[0][:100]])
+        logging.info(f'decoded_inputs={decoded_inputs}')
+        logging.info(f'decoded_outputs={decoded_outputs}')
         
         # Save past state if it exists
         # TODO: this needs to be fixed and made cleaner later.
