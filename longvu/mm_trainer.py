@@ -513,8 +513,10 @@ class LLaVATrainer(Trainer):
         assert len(output_ids) == len(inputs['input_ids']), '@tcm: output_ids and inputs[input_ids] should have the same length'
         generated_ids = []
         for input_ids, token_ids in zip(inputs['input_ids'], output_ids):
+            logging.info(f'len(input_ids)={len(input_ids)}')
+            logging.info(f'len(token_ids)={len(token_ids)}')
             generated_ids.append(token_ids[len(input_ids):])
-        decoded_tokens = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+        decoded_tokens = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
         logging.info(f'decoded_tokens={decoded_tokens}')
         
         # Save past state if it exists

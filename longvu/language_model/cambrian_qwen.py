@@ -363,7 +363,8 @@ class CambrianQwenForCausalLM(Qwen2ForCausalLM, CambrianMetaForCausalLM):
             hidden_states = outputs[0]
             logits = self.lm_head(hidden_states)
             logits = logits.float()
-
+            if isinstance(logits, torch.Tensor):
+                logging.info(f'logits.shape={logits.shape}')
             loss = None
             if labels is not None:
                 # Shift so that tokens < n predict n
