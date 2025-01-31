@@ -508,7 +508,15 @@ class LLaVATrainer(Trainer):
 
         if isinstance(inputs['input_ids'], torch.Tensor):
             logging.info(f'inputs[input_ids].shape={inputs["input_ids"].shape}')
-            logging.info(f'last: {inputs["input_ids"][-1][-1]}')
+            special_tok_ids = list(range(151643, 151647))
+            for inp_ids in inputs['input_ids']:
+                logging.info(f'inp_ids={inp_ids}')
+                for i in range(len(inp_ids) - 1, 0, -1):
+                    if inp_ids[i] in special_tok_ids:
+                        continue
+                    else:
+                        logging.info(f'Last non-special token id={inp_ids[i]} at position={i}')
+                        break
         outputs = model(**inputs)
 
         assert isinstance(outputs, tuple) and len(outputs) == 2, '@tcm: Expected: (loss, output tensor)'
