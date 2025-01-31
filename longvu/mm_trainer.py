@@ -535,9 +535,8 @@ class LLaVATrainer(Trainer):
         #     generated_ids.append(token_ids[i:])
         # decoded_tokens = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
         # logging.info(f'decoded_tokens={decoded_tokens}')
-        input_ids = inputs['input_ids'][0]
-        decoded_inputs = self.tokenizer.batch_decode([input_ids[:100]])
-        decoded_outputs = self.tokenizer.batch_decode([output_ids[0][:100]])
+        decoded_inputs = self.tokenizer.batch_decode(inputs['input_ids'][..., :100])
+        decoded_outputs = self.tokenizer.batch_decode(output_ids[..., :100])
         logging.info(f'decoded_inputs={decoded_inputs}')
         logging.info(f'decoded_outputs={decoded_outputs}')
         
