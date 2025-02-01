@@ -120,7 +120,9 @@ class DinoVisionTower(BaseVisionTower):
                 images.to(device=self.device, dtype=self.dtype)
             )
             # logger.warning(f"image_forward_outs shape: {image_forward_outs['last_hidden_state'].shape}")
-            image_features = self.feature_select(image_forward_outs).to(images.dtype)
+            # @tcm: Error occurs when images.dtype=torch.float16 but what desired for the returned features is torch.bfloat16
+            # image_features = self.feature_select(image_forward_outs).to(images.dtype)
+            image_features = self.feature_select(image_forward_outs)
             # logger.warning(f"image_features shape: {image_features.shape}")
             interp_features = self.interpolate(image_features)
             # logger.warning(f"interp_features shape: {interp_features.shape}")
