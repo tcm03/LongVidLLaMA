@@ -33,6 +33,8 @@ from .multimodal_encoder.builder import build_vision_tower_aux_list
 from .multimodal_projector.builder import build_vision_projector
 from .vision_sampler import VisionTokenSampler
 
+import logging
+
 IS_XLA_AVAILABLE = False
 
 
@@ -80,6 +82,7 @@ class CambrianMetaModel:
                             nn.LayerNorm(vision_hidden_size),
                         ),
                     )
+                    logging.info(f'mm_projector_aux_{aux_i}.dtype: {getattr(self, "mm_projector_aux_{}".format(aux_i)).dtype}')
 
                 for query_group_i in range(num_query_group):
                     cross_att_token_len_list = [
@@ -254,6 +257,7 @@ class CambrianMetaModel:
                             nn.LayerNorm(vision_hidden_size),
                         ),
                     )
+                    logging.info(f'mm_projector_aux_{aux_i}.dtype: {getattr(self, "mm_projector_aux_{}".format(aux_i)).dtype}')
 
                 # vision sampler for each group of query as the connector before the LLM
                 for query_group_i in range(num_query_group):
