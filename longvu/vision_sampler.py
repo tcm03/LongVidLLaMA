@@ -562,6 +562,8 @@ class VisionTokenSampler(nn.Module):
     def forward(self, queries, context_feature, *vision_latents_attention_mask_list):
         for layer in self.layers:
             queries = layer(
-                queries, context_feature, *vision_latents_attention_mask_list
+                queries, 
+                context_feature.to(device=self.device, dtype=self.dtype), # @tcm: ensure same device and dtype to avoid bfloat16 (model) and fp16 (context_feature)
+                *vision_latents_attention_mask_list
             )
         return queries
