@@ -179,12 +179,14 @@ class LLaVATrainer(Trainer):
     def __init__(
         self,
         train_dataloader: Optional[DataLoader] = None,
+        deepspeed: Optional[str] = None,
         # pyre-fixme[2]: Parameter must be annotated.
         *args,
         # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
         self.train_dataloader = train_dataloader
+        self.deepspeed = deepspeed,
         super().__init__(*args, **kwargs)
 
     def get_train_dataloader(self) -> DataLoader:
