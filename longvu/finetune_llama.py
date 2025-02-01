@@ -863,6 +863,7 @@ def train() -> None:
                     model_args.input_model_filename,
                     **bnb_model_from_pretrained_args,
                 )
+                
         else:
             raise NotImplementedError(
                 f"{model_args.model_name_or_path} is not supported yet"
