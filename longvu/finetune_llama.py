@@ -139,6 +139,8 @@ class TrainingArguments(transformers.TrainingArguments):
     unfreeze_mm_vision_tower: bool = field(default=False)
     mm_vision_tower_lr: Optional[float] = None
     unfreeze_mm_image_decoder: bool = field(default=False)
+    deepspeed: Optional[str] = field(default="ds_config.json")
+    is_deepspeed_zero3_enabled: bool = True
 
     mm_vision_sampler_lr: Optional[float] = None
     mm_projector_lr: Optional[float] = None
@@ -863,7 +865,7 @@ def train() -> None:
                     model_args.input_model_filename,
                     **bnb_model_from_pretrained_args,
                 )
-                
+                logging.info(f'model dtype: {model.config.torch_dtype}')
         else:
             raise NotImplementedError(
                 f"{model_args.model_name_or_path} is not supported yet"
@@ -1086,9 +1088,9 @@ def train() -> None:
 
     model = convert_bn_to_float(model)
 
-    os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
+    # os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
     # pyre-fixme[16]: `DataClass` has no attribute `fsdp_config`.
-    training_args.fsdp_config["use_orig_params"] = True
+    # training_args.fsdp_config["use_orig_params"] = True
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
 
     callbacks = []
@@ -1116,6 +1118,7 @@ def train() -> None:
         tokenizer=tokenizer,
         args=training_args,
         callbacks=callbacks,
+        deepspeed=training_args.deepspeed,
         **data_module,
     )
 
@@ -1137,4 +1140,7 @@ def train() -> None:
 
 
 if __name__ == "__main__":
+    torch.cuda.memory._record_memory_history(max_entries=100000)
     train()
+    torch.cuda.memory._dump_snapshot("longvu_llama_0.pkl")
+    torch.cuda.memory._record_memory_history(enabled=None)
