@@ -606,7 +606,6 @@ class CambrianMetaForCausalLM(ABC):
         if encode_type == "dino":
             image_aux = image_aux_list[-1]
             vision_tower_aux = vision_tower_aux_list[-1]
-            logging.info(f'In encode_images():dino: image_aux.dtype = {image_aux.dtype}, vision_tower_aux.dtype = {next(vision_tower_aux.vision_tower.parameters()).dtype}')
             if image_aux.shape[0] > chunk_size:
                 image_aux_features_chunks = []
                 for start_idx in range(0, image_aux.shape[0], chunk_size):
@@ -617,11 +616,11 @@ class CambrianMetaForCausalLM(ABC):
                 image_aux_features = torch.cat(image_aux_features_chunks, dim=0)
             else:
                 image_aux_features = vision_tower_aux(image_aux)
+            logging.info(f'In encode_images():dino: image_aux.dtype = {image_aux.dtype}, vision_tower_aux.dtype = {next(vision_tower_aux.vision_tower.parameters()).dtype}, image_aux_features.dtype = {image_aux_features.dtype}')
             return image_aux_features
         elif encode_type == "siglip":
             image_aux = image_aux_list[0]
             vision_tower_aux = vision_tower_aux_list[0]
-            logging.info(f'In encode_images():siglip: image_aux.dtype = {image_aux.dtype}, vision_tower_aux.dtype = {next(vision_tower_aux.vision_tower.parameters()).dtype}')
             if image_aux.shape[0] > chunk_size:
                 image_aux_features_chunks = []
                 for start_idx in range(0, image_aux.shape[0], chunk_size):
@@ -632,6 +631,7 @@ class CambrianMetaForCausalLM(ABC):
                 image_aux_features = torch.cat(image_aux_features_chunks, dim=0)
             else:
                 image_aux_features = vision_tower_aux(image_aux)
+            logging.info(f'In encode_images():siglip: image_aux.dtype = {image_aux.dtype}, vision_tower_aux.dtype = {next(vision_tower_aux.vision_tower.parameters()).dtype}, image_aux_features.dtype = {image_aux_features.dtype}')
             return image_aux_features
         else:
             for image_aux, vision_tower_aux in zip(
