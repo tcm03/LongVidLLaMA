@@ -559,6 +559,16 @@ class VisionTokenSampler(nn.Module):
                 ]
             )
 
+    @property
+    def device(self):
+        params = list(self.parameters())[0]
+        return (params.device if len(params) > 0 else torch.device("cpu"))
+
+    @property
+    def dtype(self):
+        params = list(self.parameters())[0]
+        return (params.dtype if len(params) > 0 else torch.float32)
+
     def forward(self, queries, context_feature, *vision_latents_attention_mask_list):
         for layer in self.layers:
             queries = layer(
