@@ -32,6 +32,7 @@ from longvu.constants import (
 from .multimodal_encoder.builder import build_vision_tower_aux_list
 from .multimodal_projector.builder import build_vision_projector
 from .vision_sampler import VisionTokenSampler
+import logging
 
 IS_XLA_AVAILABLE = False
 
@@ -885,7 +886,7 @@ class CambrianMetaForCausalLM(ABC):
             # get vision tokens from each vision tower
             for aux_i in range(len(vision_tower_aux_list)):
                 image_aux_features = image_aux_features_list[aux_i]
-
+                logging.info(f'image_aux_features.dtype = {image_aux_features.dtype}')
                 image_aux_features = getattr(
                     self.get_model(), "mm_projector_aux_{}".format(aux_i)
                 )(image_aux_features).to(dtype)
