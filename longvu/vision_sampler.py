@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.utils.checkpoint
 from torch import nn
-
+import logging
 
 # https://github.com/facebookresearch/mae/blob/efb2a8062c206524e35e47d04501ed4f544c0ae8/util/pos_embed.py#L20
 def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False):
@@ -457,6 +457,7 @@ class VisionAggregationLayer(nn.Module):
 
         residual = queries
         # queries = self.proj_in(queries)
+        logging.info(f'context_feature.dtype = {context_feature.dtype}, self.proj_context.dtype = {next(self.proj_context.parameters()).dtype}')
         context_feature = self.proj_context(context_feature)
         # queries = queries + context_feature
         queries = torch.cat([queries, context_feature], -1)
