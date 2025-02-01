@@ -347,6 +347,7 @@ class VisionCrossAttentionLayer(nn.Module):
 
         residual = queries
         # queries = self.proj_in(queries)
+        logging.info(f'context_feature.dtype = {context_feature.dtype}, self.proj_context.dtype = {next(self.proj_context.parameters()).dtype}')
         context_feature = self.proj_context(context_feature)
         # queries = queries + context_feature
         queries = torch.cat([queries, context_feature], -1)
@@ -457,7 +458,6 @@ class VisionAggregationLayer(nn.Module):
 
         residual = queries
         # queries = self.proj_in(queries)
-        logging.info(f'context_feature.dtype = {context_feature.dtype}, self.proj_context.dtype = {next(self.proj_context.parameters()).dtype}')
         context_feature = self.proj_context(context_feature)
         # queries = queries + context_feature
         queries = torch.cat([queries, context_feature], -1)
