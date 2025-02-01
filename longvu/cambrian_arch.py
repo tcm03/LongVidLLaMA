@@ -83,7 +83,7 @@ class CambrianMetaModel:
                             nn.LayerNorm(vision_hidden_size),
                         ),
                     )
-                    logging.info(f'mm_projector_aux_{aux_i}.dtype: {getattr(self, "mm_projector_aux_{}".format(aux_i)).dtype}')
+                    logging.info(f'mm_projector_aux_{aux_i}.dtype: {next(getattr(self, "mm_projector_aux_{}".format(aux_i)).parameters()).dtype}')
 
                 for query_group_i in range(num_query_group):
                     cross_att_token_len_list = [
@@ -258,7 +258,7 @@ class CambrianMetaModel:
                             nn.LayerNorm(vision_hidden_size),
                         ),
                     )
-                    logging.info(f'mm_projector_aux_{aux_i}.dtype: {getattr(self, "mm_projector_aux_{}".format(aux_i)).dtype}')
+                    logging.info(f'mm_projector_aux_{aux_i}.dtype: {next(getattr(self, "mm_projector_aux_{}".format(aux_i)).parameters()).dtype}')
 
                 # vision sampler for each group of query as the connector before the LLM
                 for query_group_i in range(num_query_group):
@@ -890,7 +890,7 @@ class CambrianMetaForCausalLM(ABC):
             # get vision tokens from each vision tower
             for aux_i in range(len(vision_tower_aux_list)):
                 image_aux_features = image_aux_features_list[aux_i]
-                logging.info(f'image_aux_features.dtype = {image_aux_features.dtype}')
+                logging.info(f'aux_i={aux_i}, image_aux_features.dtype = {image_aux_features.dtype}')
                 image_aux_features = getattr(
                     self.get_model(), "mm_projector_aux_{}".format(aux_i)
                 )(image_aux_features).to(dtype)
