@@ -140,7 +140,7 @@ class TrainingArguments(transformers.TrainingArguments):
     mm_vision_tower_lr: Optional[float] = None
     unfreeze_mm_image_decoder: bool = field(default=False)
     deepspeed: Optional[str] = field(default="ds_config.json")
-    is_deepspeed_zero3_enabled: bool = True
+    # is_deepspeed_zero3_enabled: bool = True
 
     mm_vision_sampler_lr: Optional[float] = None
     mm_projector_lr: Optional[float] = None
