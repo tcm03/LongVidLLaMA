@@ -570,10 +570,14 @@ class VisionTokenSampler(nn.Module):
         return (params.dtype if len(params) > 0 else torch.float32)
 
     def forward(self, queries, context_feature, *vision_latents_attention_mask_list):
+        context_feature = context_feature.to(device=self.device, dtype=self.dtype) # @tcm: ensure same device and dtype to avoid bfloat16 (model) and fp16 (context_feature)
+        for i, vision_latents_attention_mask in enumerate(vision_latents_attention_mask_list):
+            if isinstance(vision_latents_attention_mask, torch.Tensor):
+                vision_latents_attention_mask_list[i] = vision_latents_attention_mask.to(device=self.device, dtype=self.dtype)
         for layer in self.layers:
             queries = layer(
                 queries, 
-                context_feature.to(device=self.device, dtype=self.dtype), # @tcm: ensure same device and dtype to avoid bfloat16 (model) and fp16 (context_feature)
+                context_feature,
                 *vision_latents_attention_mask_list
             )
         return queries
