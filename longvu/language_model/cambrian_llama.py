@@ -317,7 +317,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 image_sizes,
             )
             if isinstance(inputs_embeds, torch.Tensor):
-                logging.info('inputs_embeds.dtype: {inputs_embeds.dtype}')
+                logging.info(f'inputs_embeds.dtype: {inputs_embeds.dtype}')
             elif isinstance(inputs_embeds, list):
                 for i, input_embed in enumerate(inputs_embeds):
                     if isinstance(input_embed, torch.Tensor):
