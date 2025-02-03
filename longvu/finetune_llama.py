@@ -1076,7 +1076,8 @@ def train() -> None:
     logging.info(f'Total params: {total_params}')
     logging.info(f'Trainable params: {trainable_params}')
 
-    model.to(torch.bfloat16)
+    if training_args.bf16:
+        model.to(torch.bfloat16)
 
     # pyre-fixme
     def convert_bn_to_float(model):

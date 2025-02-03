@@ -183,7 +183,12 @@ class CambrianLlamaModel(CambrianMetaModel, LlamaModel):
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
-
+        if isinstance(hidden_states, torch.Tensor):
+            logging.info(f'hidden_states.dtype: {hidden_states.dtype}')
+        elif isinstance(hidden_states, list):
+            for i, hidden_state in enumerate(hidden_states):
+                if isinstance(hidden_state, torch.Tensor):
+                    logging.info(f'hidden_states[{i}].dtype: {hidden_state.dtype}')
         # pyre-fixme[16]: `CambrianLlamaModel` has no attribute `layers`.
         for i, decoder_layer in enumerate(self.layers):
             if output_hidden_states:
