@@ -808,8 +808,8 @@ def preprocess_llama3(
     input_ids = torch.tensor(input_ids, dtype=torch.long)
     targets = torch.tensor(targets, dtype=torch.long)
 
-    print("input_ids", input_ids, flush=True)
-    print("targets", targets, flush=True)
+    # print("input_ids", input_ids, flush=True)
+    # print("targets", targets, flush=True)
 
     return dict(
         input_ids=input_ids,  # tensor(bs x seq_len)
