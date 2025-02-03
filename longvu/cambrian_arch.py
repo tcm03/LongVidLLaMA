@@ -802,6 +802,12 @@ class CambrianMetaForCausalLM(ABC):
         image_aux_attention_masks_list=None,
         image_sizes=None,
     ):
+        if isinstance(input_ids, torch.Tensor):
+            logging.info(f'input_ids.dtype: {input_ids.dtype}')
+        if isinstance(images, list):
+            for i, image in enumerate(images):
+                if isinstance(image, torch.Tensor):
+                    logging.info(f'images[{i}].dtype: {image.dtype}')
         # vision_tower = self.get_vision_tower()
         vision_tower_aux_list = self.get_model().get_vision_tower_aux_list()
         if vision_tower_aux_list is None or images is None or input_ids.shape[1] == 1:
