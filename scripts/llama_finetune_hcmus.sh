@@ -5,7 +5,7 @@ PATH_TO_JSON_VAL="/media02/nthuy/data/EnTube_preprocessing/data/EnTube_5m_test.j
 PATH_TO_FOLDER="/media02/nthuy/data/entube/EnTube/data"
 VERSION="llama3"
 
-CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=3 --nnodes=1 \
+CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=2 --nnodes=1 \
     longvu/finetune_llama.py \
     --output_dir "/tmp/longvu/" \
     --input_model_filename $PREV_STAGE_CHECKPOINT \
@@ -46,6 +46,8 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --tune_mm_mlp_adapter False \
     --freeze_mm_mlp_adapter False \
     --freeze_backbone True \
+    --fsdp "full_shard auto_wrap" \
+    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer' \
     --gradient_checkpointing True \
     --mm_projector_type sva \
     --image_token_len 144 \
@@ -56,4 +58,4 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --highres True \
     --drop_threshold 0.75 \
     --label_names labels \
-    --deepspeed ds_config_2.json
+    # --deepspeed ds_config_2.json

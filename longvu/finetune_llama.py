@@ -139,7 +139,7 @@ class TrainingArguments(transformers.TrainingArguments):
     unfreeze_mm_vision_tower: bool = field(default=False)
     mm_vision_tower_lr: Optional[float] = None
     unfreeze_mm_image_decoder: bool = field(default=False)
-    deepspeed: Optional[str] = field(default="ds_config.json")
+    # deepspeed: Optional[str] = field(default="ds_config.json")
     # is_deepspeed_zero3_enabled: bool = True
 
     mm_vision_sampler_lr: Optional[float] = None
@@ -865,7 +865,6 @@ def train() -> None:
                     model_args.input_model_filename,
                     **bnb_model_from_pretrained_args,
                 )
-                logging.info(f'model dtype: {model.config.torch_dtype}')
         else:
             raise NotImplementedError(
                 f"{model_args.model_name_or_path} is not supported yet"
@@ -1119,7 +1118,7 @@ def train() -> None:
         tokenizer=tokenizer,
         args=training_args,
         callbacks=callbacks,
-        deepspeed=training_args.deepspeed,
+        # deepspeed=training_args.deepspeed,
         **data_module,
     )
 
