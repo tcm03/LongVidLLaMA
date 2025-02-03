@@ -792,6 +792,10 @@ class DataCollatorForSupervisedDataset(object):
             else:
                 batch["images"] = image_aux_list
 
+        if isinstance(batch['images'], list):
+            for i, img_tensor in enumerate(batch['images']):
+                if isinstance(img_tensor, torch.Tensor):
+                    logging.info(f'batch["images"][{i}].dtype: {img_tensor.dtype}')
         return batch
 
 
