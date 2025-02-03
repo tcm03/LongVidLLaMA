@@ -509,6 +509,8 @@ class LLaVATrainer(Trainer):
         else:
             labels = None
 
+        if isinstance(inputs, dict):
+            logging.info(f'In compute_loss(): inputs.keys: {inputs.keys()}')
         outputs = model(**inputs)
 
         assert (isinstance(outputs, tuple) and len(outputs) == 2) or isinstance(outputs, CausalLMOutputWithPast), '@tcm: Expected: CausalLMOutputWithPast or tuple(loss, logits tensor)'

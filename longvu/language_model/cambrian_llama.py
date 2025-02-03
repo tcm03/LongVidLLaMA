@@ -293,6 +293,12 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
         final_vision_feature_size = None
         if isinstance(images, list) and isinstance(images[0], torch.Tensor):
             logging.info(f'images[0].shape={images[0].shape}')
+        if isinstance(inputs_embeds, torch.Tensor):
+            logging.info('inputs_embeds.dtype: {inputs_embeds.dtype}')
+        elif isinstance(inputs_embeds, list):
+            for i, input_embed in enumerate(inputs_embeds):
+                if isinstance(input_embed, torch.Tensor):
+                    logging.info(f'inputs_embeds[{i}].dtype: {input_embed.dtype}')
 
         if inputs_embeds is None:
             (
@@ -342,7 +348,8 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
         return_dict = (
             return_dict if return_dict is not None else self.config.use_return_dict
         )
-
+        
+        
         # training
         if IS_XLA_AVAILABLE:
             # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
