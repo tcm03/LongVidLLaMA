@@ -41,6 +41,7 @@ from transformers.modeling_outputs import (
 )
 from transformers.utils import logging as lgging
 import logging
+from ..resource_logging import MeasureResourceUsage
 
 from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
 
@@ -295,33 +296,34 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             logging.info(f'images[0].shape={images[0].shape}')
 
         if inputs_embeds is None:
-            (
-                input_ids,
-                position_ids,
-                attention_mask,
-                past_key_values,
-                inputs_embeds,
-                labels,
-                vision_tower_aux_feature_list,
-                vision_tower_aux_attention_masks_list,
-                final_vision_feature_size,
-                global_context_feature,
-            ) = self.prepare_inputs_labels_for_multimodal(
-                input_ids,
-                position_ids,
-                attention_mask,
-                past_key_values,
-                labels,
-                images,
-                image_aux_attention_masks_list,
-                image_sizes,
-            )
-            if isinstance(inputs_embeds, torch.Tensor):
-                logging.info(f'inputs_embeds.dtype: {inputs_embeds.dtype}')
-            elif isinstance(inputs_embeds, list):
-                for i, input_embed in enumerate(inputs_embeds):
-                    if isinstance(input_embed, torch.Tensor):
-                        logging.info(f'inputs_embeds[{i}].dtype: {input_embed.dtype}')
+            with MeasureResourceUsage():
+                (
+                    input_ids,
+                    position_ids,
+                    attention_mask,
+                    past_key_values,
+                    inputs_embeds,
+                    labels,
+                    vision_tower_aux_feature_list,
+                    vision_tower_aux_attention_masks_list,
+                    final_vision_feature_size,
+                    global_context_feature,
+                ) = self.prepare_inputs_labels_for_multimodal(
+                    input_ids,
+                    position_ids,
+                    attention_mask,
+                    past_key_values,
+                    labels,
+                    images,
+                    image_aux_attention_masks_list,
+                    image_sizes,
+                )
+                if isinstance(inputs_embeds, torch.Tensor):
+                    logging.info(f'inputs_embeds.dtype: {inputs_embeds.dtype}')
+                elif isinstance(inputs_embeds, list):
+                    for i, input_embed in enumerate(inputs_embeds):
+                        if isinstance(input_embed, torch.Tensor):
+                            logging.info(f'inputs_embeds[{i}].dtype: {input_embed.dtype}')
         if IS_XLA_AVAILABLE:
             # Very Important for TorchXLA
             # self.model.gradient_checkpointing = False
@@ -378,95 +380,97 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
 
         # inference
         else:
-            if hasattr(self, "vision_tower_aux_feature_list"):
-                # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
-                # pyre-fixme[29]: `CambrianLlamaModel` is not a function.
-                outputs = self.model(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    position_ids=position_ids,
-                    past_key_values=past_key_values,
-                    inputs_embeds=inputs_embeds,
-                    use_cache=use_cache,
-                    output_attentions=output_attentions,
-                    output_hidden_states=output_hidden_states,
-                    return_dict=return_dict,
-                    vision_tower_aux_feature_list=(
-                        # pyre-fixme[61]: `vision_tower_aux_feature_list` is
-                        #  undefined, or not always defined.
-                        vision_tower_aux_feature_list
-                        if inputs_embeds is None
-                        # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no
-                        #  attribute `vision_tower_aux_feature_list`.
-                        else self.vision_tower_aux_feature_list
-                    ),
-                    vision_tower_aux_attention_masks_list=(
-                        # pyre-fixme[61]: `vision_tower_aux_attention_masks_list` is
-                        #  undefined, or not always defined.
-                        vision_tower_aux_attention_masks_list
-                        if inputs_embeds is None
-                        # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no
-                        #  attribute `vision_tower_aux_attention_masks_list`.
-                        else self.vision_tower_aux_attention_masks_list
-                    ),
-                    final_vision_feature_size=(
-                        final_vision_feature_size
-                        if inputs_embeds is None
-                        # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no
-                        #  attribute `final_vision_feature_size`.
-                        else self.final_vision_feature_size
-                    ),
-                    global_context_feature=(
-                        # pyre-fixme[61]: `global_context_feature` is undefined, or
-                        #  not always defined.
-                        global_context_feature
-                        if inputs_embeds is None
-                        # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no
-                        #  attribute `global_context_feature`.
-                        else self.global_context_feature
-                    ),
+            with MeasureResourceUsage():
+                if hasattr(self, "vision_tower_aux_feature_list"):
+                    # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
+                    # pyre-fixme[29]: `CambrianLlamaModel` is not a function.
+                    outputs = self.model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        position_ids=position_ids,
+                        past_key_values=past_key_values,
+                        inputs_embeds=inputs_embeds,
+                        use_cache=use_cache,
+                        output_attentions=output_attentions,
+                        output_hidden_states=output_hidden_states,
+                        return_dict=return_dict,
+                        vision_tower_aux_feature_list=(
+                            # pyre-fixme[61]: `vision_tower_aux_feature_list` is
+                            #  undefined, or not always defined.
+                            vision_tower_aux_feature_list
+                            if inputs_embeds is None
+                            # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no
+                            #  attribute `vision_tower_aux_feature_list`.
+                            else self.vision_tower_aux_feature_list
+                        ),
+                        vision_tower_aux_attention_masks_list=(
+                            # pyre-fixme[61]: `vision_tower_aux_attention_masks_list` is
+                            #  undefined, or not always defined.
+                            vision_tower_aux_attention_masks_list
+                            if inputs_embeds is None
+                            # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no
+                            #  attribute `vision_tower_aux_attention_masks_list`.
+                            else self.vision_tower_aux_attention_masks_list
+                        ),
+                        final_vision_feature_size=(
+                            final_vision_feature_size
+                            if inputs_embeds is None
+                            # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no
+                            #  attribute `final_vision_feature_size`.
+                            else self.final_vision_feature_size
+                        ),
+                        global_context_feature=(
+                            # pyre-fixme[61]: `global_context_feature` is undefined, or
+                            #  not always defined.
+                            global_context_feature
+                            if inputs_embeds is None
+                            # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no
+                            #  attribute `global_context_feature`.
+                            else self.global_context_feature
+                        ),
+                    )
+                else:
+                    # pyre-fixme[29]: `CambrianLlamaModel` is not a function.
+                    outputs = self.model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        position_ids=position_ids,
+                        past_key_values=past_key_values,
+                        inputs_embeds=inputs_embeds,
+                        use_cache=use_cache,
+                        output_attentions=output_attentions,
+                        output_hidden_states=output_hidden_states,
+                        return_dict=return_dict,
+                        # final_vision_feature_size=final_vision_feature_size,
+                    )
+
+        with MeasureResourceUsage():
+            hidden_states = outputs[0]
+            if self.config.pretraining_tp > 1:
+                lm_head_slices = self.lm_head.weight.split(
+                    self.vocab_size // self.config.pretraining_tp, dim=0
                 )
+                logits = [
+                    F.linear(hidden_states, lm_head_slices[i])
+                    for i in range(self.config.pretraining_tp)
+                ]
+                logits = torch.cat(logits, dim=-1)
             else:
-                # pyre-fixme[29]: `CambrianLlamaModel` is not a function.
-                outputs = self.model(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    position_ids=position_ids,
-                    past_key_values=past_key_values,
-                    inputs_embeds=inputs_embeds,
-                    use_cache=use_cache,
-                    output_attentions=output_attentions,
-                    output_hidden_states=output_hidden_states,
-                    return_dict=return_dict,
-                    # final_vision_feature_size=final_vision_feature_size,
-                )
+                logits = self.lm_head(hidden_states)
+            logits = logits.float()
 
-        hidden_states = outputs[0]
-        if self.config.pretraining_tp > 1:
-            lm_head_slices = self.lm_head.weight.split(
-                self.vocab_size // self.config.pretraining_tp, dim=0
-            )
-            logits = [
-                F.linear(hidden_states, lm_head_slices[i])
-                for i in range(self.config.pretraining_tp)
-            ]
-            logits = torch.cat(logits, dim=-1)
-        else:
-            logits = self.lm_head(hidden_states)
-        logits = logits.float()
-
-        loss = None
-        if labels is not None:
-            # Shift so that tokens < n predict n
-            shift_logits = logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            # Flatten the tokens
-            loss_fct = CrossEntropyLoss()
-            shift_logits = shift_logits.view(-1, self.config.vocab_size)
-            shift_labels = shift_labels.view(-1)
-            # Enable model parallelism
-            shift_labels = shift_labels.to(shift_logits.device)
-            loss = loss_fct(shift_logits, shift_labels)
+            loss = None
+            if labels is not None:
+                # Shift so that tokens < n predict n
+                shift_logits = logits[..., :-1, :].contiguous()
+                shift_labels = labels[..., 1:].contiguous()
+                # Flatten the tokens
+                loss_fct = CrossEntropyLoss()
+                shift_logits = shift_logits.view(-1, self.config.vocab_size)
+                shift_labels = shift_labels.view(-1)
+                # Enable model parallelism
+                shift_labels = shift_labels.to(shift_logits.device)
+                loss = loss_fct(shift_logits, shift_labels)
 
         if not return_dict:
             output = (logits,) + outputs[1:]

@@ -34,6 +34,9 @@ def measure_resource_usage(devices: List[torch.device] = get_cuda_devices()):
     def decorator(func):
         def wrapper(*args, **kwargs):
             try:
+                # Reset peak memory stats on each device
+                for device in devices:
+                    torch.cuda.reset_peak_memory_stats(device)
                 # Measure start time and memory
                 start_time = time.time()
                 start_allocated: Dict[torch.device, int] = {}
@@ -101,6 +104,9 @@ class MeasureResourceUsage:
         self.project_py_files = set(get_project_py_files())  # Use set for faster lookups
 
     def __enter__(self):
+        # Reset peak memory stats on each device
+        for device in self.devices:
+            torch.cuda.reset_peak_memory_stats(device)
         self.start_time = time.time()
         self.start_allocated: Dict[torch.device, int] = {}
         self.start_reserved: Dict[torch.device, int] = {}
