@@ -106,6 +106,7 @@ class MeasureResourceUsage:
         if "cuda" not in device.type:
             raise ValueError("The device must be a CUDA device.")
         self.device = device
+        self.prefix = prefix
         
         self.project_py_files = set(get_project_py_files())  # Use set for faster lookups
 
