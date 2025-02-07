@@ -859,7 +859,7 @@ class CambrianMetaForCausalLM(ABC):
                     threshold=getattr(self.get_model().config, "dino_threshold", 0.83),
                 )
 
-            with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> encode_images:siglip")
+            with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> encode_images:siglip"):
                 image_aux_features_siglip = self.encode_images(
                     new_image_aux_list, encode_type="siglip"
                 )
@@ -895,7 +895,7 @@ class CambrianMetaForCausalLM(ABC):
         vision_tower_aux_attention_masks_list_final = None
         global_context_feature_final = None
 
-        with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> SVA")
+        with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> SVA"):
             if self.get_model().config.mm_projector_type == "sva":
                 vision_tower_aux_feature_list = []
                 vision_tower_aux_attention_masks_list = []
@@ -1055,155 +1055,156 @@ class CambrianMetaForCausalLM(ABC):
                 self.get_model().mm_projector(image_features_down).to(dtype)
             )
 
-        if IS_XLA_AVAILABLE:
-            image_features = image_features.view(
-                image_features.shape[0], final_height, final_width, -1
-            )
-            image_features = torch.cat(
-                (
-                    image_features,
-                    self.model.image_newline[None, None, None, :].expand(
-                        image_features.shape[0], final_height, 1, -1
-                    ),
-                ),
-                dim=2,
-            )
-            image_features = image_features.flatten(1, 2)
-            final_size = [(final_height, final_width)] * bs
-
-        else:
-            image_features = image_features.view(bs, final_height, final_width, -1)
-            if (getattr(self.config, "highres", False)) and input_mix_res:
-                image_features_down = image_features_down.view(
-                    bs,
-                    self.get_model().config.lowres_token,
-                    self.get_model().config.lowres_token,
-                    -1,
+        with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> rearrange_vision_tower+padding"):
+            if IS_XLA_AVAILABLE:
+                image_features = image_features.view(
+                    image_features.shape[0], final_height, final_width, -1
                 )
-            image_features_unpadded = []
-            image_features_downsample = []
-            final_size = []
-            if self.get_model().config.mm_projector_type == "sva":
-                (
-                    vision_tower_aux_feature_list_final,
-                    vision_tower_aux_attention_masks_list_final,
-                ) = self.rearrange_vision_tower_features_inference(
-                    vision_tower_aux_feature_list, final_height, image_sizes, unpad=True
-                )
-                global_context_feature_final = []
-            for batch_i in range(bs):
-                cur_image_feature = image_features[batch_i]
-                image_size = image_sizes[batch_i]
-
-                cur_image_feature = unpad_image(
-                    cur_image_feature.unsqueeze(0), image_size
-                )
-
-                cur_h, cur_w = cur_image_feature.shape[1:3]
-                try:  # fix bug for some invalid image
-                    cur_image_feature = cur_image_feature.view(1, cur_h, cur_w, -1)
-                    final_size.append((cur_h, cur_w))
-                except:
-                    # print(f"invalid after unpad {image_features[batch_i].shape}, {image_sizes[batch_i]}", flush=True)
-                    cur_image_feature = image_features[batch_i].unsqueeze(0)
-                    image_size = image_sizes[batch_i]
-                    cur_h, cur_w = cur_image_feature.shape[1:3]
-                    cur_image_feature = cur_image_feature.view(1, cur_h, cur_w, -1)
-                    final_size.append((cur_h, cur_w))
-
-                if (getattr(self.config, "highres", False)) and input_mix_res:
-                    cur_image_feature_down = unpad_image(
-                        image_features_down[batch_i].unsqueeze(0),
-                        (
-                            int(
-                                image_size[0]
-                                / (
-                                    image_token_len**0.5
-                                    / self.get_model().config.lowres_token
-                                )
-                            ),
-                            int(
-                                image_size[1]
-                                / (
-                                    image_token_len**0.5
-                                    / self.get_model().config.lowres_token
-                                )
-                            ),
+                image_features = torch.cat(
+                    (
+                        image_features,
+                        self.model.image_newline[None, None, None, :].expand(
+                            image_features.shape[0], final_height, 1, -1
                         ),
-                    )
-                    _cur_h, _cur_w = cur_image_feature_down.shape[1:3]
+                    ),
+                    dim=2,
+                )
+                image_features = image_features.flatten(1, 2)
+                final_size = [(final_height, final_width)] * bs
 
+            else:
+                image_features = image_features.view(bs, final_height, final_width, -1)
+                if (getattr(self.config, "highres", False)) and input_mix_res:
+                    image_features_down = image_features_down.view(
+                        bs,
+                        self.get_model().config.lowres_token,
+                        self.get_model().config.lowres_token,
+                        -1,
+                    )
+                image_features_unpadded = []
+                image_features_downsample = []
+                final_size = []
+                if self.get_model().config.mm_projector_type == "sva":
+                    (
+                        vision_tower_aux_feature_list_final,
+                        vision_tower_aux_attention_masks_list_final,
+                    ) = self.rearrange_vision_tower_features_inference(
+                        vision_tower_aux_feature_list, final_height, image_sizes, unpad=True
+                    )
+                    global_context_feature_final = []
+                for batch_i in range(bs):
+                    cur_image_feature = image_features[batch_i]
+                    image_size = image_sizes[batch_i]
+
+                    cur_image_feature = unpad_image(
+                        cur_image_feature.unsqueeze(0), image_size
+                    )
+
+                    cur_h, cur_w = cur_image_feature.shape[1:3]
                     try:  # fix bug for some invalid image
-                        cur_image_feature_down = cur_image_feature_down.view(
-                            1, _cur_h, _cur_w, -1
-                        )
+                        cur_image_feature = cur_image_feature.view(1, cur_h, cur_w, -1)
+                        final_size.append((cur_h, cur_w))
                     except:
-                        print("invalid after unpad", flush=True)
-                        cur_image_feature_down = image_features_down[batch_i].unsqueeze(
-                            0
+                        # print(f"invalid after unpad {image_features[batch_i].shape}, {image_sizes[batch_i]}", flush=True)
+                        cur_image_feature = image_features[batch_i].unsqueeze(0)
+                        image_size = image_sizes[batch_i]
+                        cur_h, cur_w = cur_image_feature.shape[1:3]
+                        cur_image_feature = cur_image_feature.view(1, cur_h, cur_w, -1)
+                        final_size.append((cur_h, cur_w))
+
+                    if (getattr(self.config, "highres", False)) and input_mix_res:
+                        cur_image_feature_down = unpad_image(
+                            image_features_down[batch_i].unsqueeze(0),
+                            (
+                                int(
+                                    image_size[0]
+                                    / (
+                                        image_token_len**0.5
+                                        / self.get_model().config.lowres_token
+                                    )
+                                ),
+                                int(
+                                    image_size[1]
+                                    / (
+                                        image_token_len**0.5
+                                        / self.get_model().config.lowres_token
+                                    )
+                                ),
+                            ),
                         )
                         _cur_h, _cur_w = cur_image_feature_down.shape[1:3]
-                        cur_image_feature_down = cur_image_feature_down.view(
-                            1, _cur_h, _cur_w, -1
-                        )
 
-                    cur_image_feature_down = torch.cat(
+                        try:  # fix bug for some invalid image
+                            cur_image_feature_down = cur_image_feature_down.view(
+                                1, _cur_h, _cur_w, -1
+                            )
+                        except:
+                            print("invalid after unpad", flush=True)
+                            cur_image_feature_down = image_features_down[batch_i].unsqueeze(
+                                0
+                            )
+                            _cur_h, _cur_w = cur_image_feature_down.shape[1:3]
+                            cur_image_feature_down = cur_image_feature_down.view(
+                                1, _cur_h, _cur_w, -1
+                            )
+
+                        cur_image_feature_down = torch.cat(
+                            (
+                                cur_image_feature_down,
+                                self.model.image_newline.view(1, 1, 1, -1)
+                                .expand(1, _cur_h, 1, -1)
+                                .to(cur_image_feature_down.device),
+                            ),
+                            dim=2,
+                        ).flatten(1, 2)
+
+                        if split_sizes is None and getattr(self.config, "frame_pos", False):
+                            frame_pos = (
+                                self.get_model()
+                                .get_frame_pos(torch.arange(1))
+                                .to(cur_image_feature_down.device)
+                                .to(cur_image_feature_down.dtype)
+                            )
+                            cur_image_feature_down += frame_pos
+
+                        image_features_downsample.append(cur_image_feature_down.squeeze(0))
+
+                    cur_image_feature = torch.cat(
                         (
-                            cur_image_feature_down,
+                            cur_image_feature,
                             self.model.image_newline.view(1, 1, 1, -1)
-                            .expand(1, _cur_h, 1, -1)
-                            .to(cur_image_feature_down.device),
+                            .expand(1, cur_h, 1, -1)
+                            .to(cur_image_feature.device),
                         ),
                         dim=2,
-                    ).flatten(1, 2)
+                    )
 
                     if split_sizes is None and getattr(self.config, "frame_pos", False):
                         frame_pos = (
                             self.get_model()
                             .get_frame_pos(torch.arange(1))
-                            .to(cur_image_feature_down.device)
-                            .to(cur_image_feature_down.dtype)
+                            .to(cur_image_feature.device)
+                            .to(cur_image_feature.dtype)
                         )
-                        cur_image_feature_down += frame_pos
+                        cur_image_feature += frame_pos
 
-                    image_features_downsample.append(cur_image_feature_down.squeeze(0))
+                    cur_image_feature = cur_image_feature.flatten(1, 2)
+                    image_features_unpadded.append(cur_image_feature.squeeze(0))
 
-                cur_image_feature = torch.cat(
-                    (
-                        cur_image_feature,
-                        self.model.image_newline.view(1, 1, 1, -1)
-                        .expand(1, cur_h, 1, -1)
-                        .to(cur_image_feature.device),
-                    ),
-                    dim=2,
-                )
-
-                if split_sizes is None and getattr(self.config, "frame_pos", False):
-                    frame_pos = (
-                        self.get_model()
-                        .get_frame_pos(torch.arange(1))
-                        .to(cur_image_feature.device)
-                        .to(cur_image_feature.dtype)
-                    )
-                    cur_image_feature += frame_pos
-
-                cur_image_feature = cur_image_feature.flatten(1, 2)
-                image_features_unpadded.append(cur_image_feature.squeeze(0))
-
+                    if self.get_model().config.mm_projector_type == "sva":
+                        cur_global_context_feature = global_context_feature[batch_i].expand(
+                            cur_h * cur_w, 1, -1
+                        )
+                        global_context_feature_final.append(cur_global_context_feature)
                 if self.get_model().config.mm_projector_type == "sva":
-                    cur_global_context_feature = global_context_feature[batch_i].expand(
-                        cur_h * cur_w, 1, -1
+                    global_context_feature_final = torch.cat(
+                        global_context_feature_final, 0
                     )
-                    global_context_feature_final.append(cur_global_context_feature)
-            if self.get_model().config.mm_projector_type == "sva":
-                global_context_feature_final = torch.cat(
-                    global_context_feature_final, 0
-                )
 
-            if (getattr(self.config, "highres", False)) and input_mix_res:
-                image_features = image_features_downsample
-            else:
-                image_features = image_features_unpadded
+                if (getattr(self.config, "highres", False)) and input_mix_res:
+                    image_features = image_features_downsample
+                else:
+                    image_features = image_features_unpadded
 
         # TODO: image start / end is not implemented here to support pretraining.
         if getattr(self.config, "tune_mm_mlp_adapter", False) and getattr(
@@ -1352,203 +1353,204 @@ class CambrianMetaForCausalLM(ABC):
         new_labels = []
         image_token_indices_batch = []
         cur_image_idx = 0
-        for batch_idx, cur_input_ids in enumerate(input_ids):
-            num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
-            if num_images == 0:
-                cur_image_features = image_features[cur_image_idx]
-                cur_input_embeds_1 = self.get_model().embed_tokens(cur_input_ids)
-                cur_input_embeds = torch.cat(
-                    [cur_input_embeds_1, cur_image_features[0:0]], dim=0
-                )
-                new_input_embeds.append(cur_input_embeds)
-                new_labels.append(labels[batch_idx])
-                cur_image_idx += 1
-                continue
-
-            image_token_indices = (
-                [-1]
-                + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist()
-                + [cur_input_ids.shape[0]]
-            )
-            image_token_indices_batch.append(
-                torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist()[0]
-            )
-            cur_input_ids_noim = []
-            cur_labels = labels[batch_idx]
-            cur_labels_noim = []
-            for i in range(len(image_token_indices) - 1):
-                cur_input_ids_noim.append(
-                    cur_input_ids[
-                        image_token_indices[i] + 1 : image_token_indices[i + 1]
-                    ]
-                )
-                cur_labels_noim.append(
-                    cur_labels[image_token_indices[i] + 1 : image_token_indices[i + 1]]
-                )
-            split_sizes = [x.shape[0] for x in cur_labels_noim]
-            cur_input_embeds = self.get_model().embed_tokens(
-                torch.cat(cur_input_ids_noim)
-            )
-            cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
-            cur_new_input_embeds = []
-            cur_new_labels = []
-
-            text_len = sum([x.shape[0] for x in cur_input_embeds_no_im])
-            visual_len = len(image_features[cur_image_idx])
-            max_visual_len = (
-                self.get_model().config.tokenizer_model_max_length
-                - getattr(self.get_model().config, "inference_max_length", 16)
-                - text_len
-            )
-            mix_token = False
-
-            # ablation mix
-            if (
-                input_mix_res
-                and (
-                    self.get_model().config.image_token_len
-                    > getattr(self.get_model().config, "lowres_token", 8) ** 2
-                )
-                and frame_split_sizes is not None
-                and getattr(self.config, "highres", False)
-            ):
-                if max_visual_len > visual_len:
-                    visual_emb = image_features[cur_image_idx]
-                    text_emb = cur_input_embeds_no_im[-1]
-                    highres_num = math.floor(
-                        (max_visual_len - visual_len)
-                        / (
-                            split_image_features_unpadded[cur_image_idx].shape[0]
-                            // frame_split_sizes[cur_image_idx]
-                            - visual_emb.shape[0] // frame_split_sizes[cur_image_idx]
-                        )
-                    )
-                    if highres_num >= 1:
-                        mix_token = True
-                        sim = torch.matmul(visual_emb, text_emb.transpose(0, 1)).mean(
-                            dim=-1
-                        )
-                        sim_frame = sim.reshape(
-                            frame_split_sizes[cur_image_idx], -1
-                        ).mean(dim=-1)
-                        highres_num = min(highres_num, sim_frame.shape[0])
-                        top_values, top_indices = torch.topk(sim_frame, highres_num)
-                        if len(top_indices) > 0:
-                            sorted_indices = torch.sort(top_indices)[1]
-                            top_indices = top_indices[sorted_indices]
-                            visual_emb_frame = image_features[cur_image_idx].reshape(
-                                frame_split_sizes[cur_image_idx],
-                                -1,
-                                image_features[cur_image_idx].shape[-1],
-                            )
-                            visual_emb_frame_highres = split_image_features_unpadded[
-                                cur_image_idx
-                            ].reshape(
-                                frame_split_sizes[cur_image_idx],
-                                -1,
-                                split_image_features_unpadded[cur_image_idx].shape[-1],
-                            )
-                            current_point = 0
-                            mix_visual_emb_frame = []
-                            for frame_i in range(len(visual_emb_frame)):
-                                if current_point > len(top_indices) - 1:
-                                    mix_visual_emb_frame.append(
-                                        visual_emb_frame[frame_i]
-                                    )
-                                    continue
-                                if frame_i == top_indices[current_point]:
-                                    mix_visual_emb_frame.append(
-                                        visual_emb_frame_highres[frame_i]
-                                    )
-                                    current_point += 1
-                                else:
-                                    mix_visual_emb_frame.append(
-                                        visual_emb_frame[frame_i]
-                                    )
-                            image_features[cur_image_idx] = torch.cat(
-                                mix_visual_emb_frame, dim=0
-                            )
-            # ablation drop
-
-            if (
-                max_visual_len < visual_len
-                and frame_split_sizes is not None
-                and not mix_token
-            ):
-                visual_emb_frame = image_features[cur_image_idx].reshape(
-                    frame_split_sizes[cur_image_idx],
-                    -1,
-                    image_features[cur_image_idx].shape[-1],
-                )
-
-                new_visual_emb_frames = []
-                for start_idx in range(0, len(visual_emb_frame), 8):
-                    end_idx = min(start_idx + 8, len(visual_emb_frame))
-                    chunk_feature = visual_emb_frame[start_idx:end_idx]  # 8, HW, C
-                    if len(chunk_feature) == 1:
-                        new_visual_emb_frames.append(chunk_feature[0])
-                        continue
-                    sim = F.cosine_similarity(
-                        chunk_feature[0]
-                        .unsqueeze(0)
-                        .repeat_interleave(len(chunk_feature[1:]), dim=0),
-                        chunk_feature[1:],
-                        dim=-1,
-                    )
-                    new_visual_emb_frame = torch.cat(
-                        [
-                            chunk_feature[0],
-                            chunk_feature[1:].flatten(0, 1)[
-                                sim.flatten(0, 1)
-                                < getattr(
-                                    self.get_model().config, "drop_threshold", 0.7
-                                )
-                            ],
-                        ],
-                        dim=0,
-                    )
-                    new_visual_emb_frames.append(new_visual_emb_frame)
-
-                reduced_visual_len = sum([x.shape[0] for x in new_visual_emb_frames])
-
-                if reduced_visual_len > max_visual_len:
-                    force_remove = math.ceil(
-                        (reduced_visual_len - max_visual_len)
-                        / len(new_visual_emb_frames)
-                    )
-                    for chunk_i in range(len(new_visual_emb_frames)):
-                        new_visual_emb_frames[chunk_i] = new_visual_emb_frames[chunk_i][
-                            :-force_remove
-                        ]
-                    new_visual_emb_frames = torch.cat(new_visual_emb_frames, dim=0)
-                else:
-                    new_visual_emb_frames = torch.cat(new_visual_emb_frames, dim=0)
-
-                image_features[cur_image_idx] = new_visual_emb_frames[:max_visual_len]
-
-            for i in range(num_images + 1):
-                cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                cur_new_labels.append(cur_labels_noim[i])
-                if i < num_images:
+        with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> Embedding+Cross-modal+STC"):
+            for batch_idx, cur_input_ids in enumerate(input_ids):
+                num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
+                if num_images == 0:
                     cur_image_features = image_features[cur_image_idx]
+                    cur_input_embeds_1 = self.get_model().embed_tokens(cur_input_ids)
+                    cur_input_embeds = torch.cat(
+                        [cur_input_embeds_1, cur_image_features[0:0]], dim=0
+                    )
+                    new_input_embeds.append(cur_input_embeds)
+                    new_labels.append(labels[batch_idx])
                     cur_image_idx += 1
-                    cur_new_input_embeds.append(cur_image_features)
-                    cur_new_labels.append(
-                        torch.full(
-                            (cur_image_features.shape[0],),
-                            IGNORE_INDEX,
-                            device=cur_labels.device,
-                            dtype=cur_labels.dtype,
+                    continue
+
+                image_token_indices = (
+                    [-1]
+                    + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist()
+                    + [cur_input_ids.shape[0]]
+                )
+                image_token_indices_batch.append(
+                    torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist()[0]
+                )
+                cur_input_ids_noim = []
+                cur_labels = labels[batch_idx]
+                cur_labels_noim = []
+                for i in range(len(image_token_indices) - 1):
+                    cur_input_ids_noim.append(
+                        cur_input_ids[
+                            image_token_indices[i] + 1 : image_token_indices[i + 1]
+                        ]
+                    )
+                    cur_labels_noim.append(
+                        cur_labels[image_token_indices[i] + 1 : image_token_indices[i + 1]]
+                    )
+                split_sizes = [x.shape[0] for x in cur_labels_noim]
+                cur_input_embeds = self.get_model().embed_tokens(
+                    torch.cat(cur_input_ids_noim)
+                )
+                cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
+                cur_new_input_embeds = []
+                cur_new_labels = []
+
+                text_len = sum([x.shape[0] for x in cur_input_embeds_no_im])
+                visual_len = len(image_features[cur_image_idx])
+                max_visual_len = (
+                    self.get_model().config.tokenizer_model_max_length
+                    - getattr(self.get_model().config, "inference_max_length", 16)
+                    - text_len
+                )
+                mix_token = False
+
+                # ablation mix
+                if (
+                    input_mix_res
+                    and (
+                        self.get_model().config.image_token_len
+                        > getattr(self.get_model().config, "lowres_token", 8) ** 2
+                    )
+                    and frame_split_sizes is not None
+                    and getattr(self.config, "highres", False)
+                ):
+                    if max_visual_len > visual_len:
+                        visual_emb = image_features[cur_image_idx]
+                        text_emb = cur_input_embeds_no_im[-1]
+                        highres_num = math.floor(
+                            (max_visual_len - visual_len)
+                            / (
+                                split_image_features_unpadded[cur_image_idx].shape[0]
+                                // frame_split_sizes[cur_image_idx]
+                                - visual_emb.shape[0] // frame_split_sizes[cur_image_idx]
+                            )
                         )
+                        if highres_num >= 1:
+                            mix_token = True
+                            sim = torch.matmul(visual_emb, text_emb.transpose(0, 1)).mean(
+                                dim=-1
+                            )
+                            sim_frame = sim.reshape(
+                                frame_split_sizes[cur_image_idx], -1
+                            ).mean(dim=-1)
+                            highres_num = min(highres_num, sim_frame.shape[0])
+                            top_values, top_indices = torch.topk(sim_frame, highres_num)
+                            if len(top_indices) > 0:
+                                sorted_indices = torch.sort(top_indices)[1]
+                                top_indices = top_indices[sorted_indices]
+                                visual_emb_frame = image_features[cur_image_idx].reshape(
+                                    frame_split_sizes[cur_image_idx],
+                                    -1,
+                                    image_features[cur_image_idx].shape[-1],
+                                )
+                                visual_emb_frame_highres = split_image_features_unpadded[
+                                    cur_image_idx
+                                ].reshape(
+                                    frame_split_sizes[cur_image_idx],
+                                    -1,
+                                    split_image_features_unpadded[cur_image_idx].shape[-1],
+                                )
+                                current_point = 0
+                                mix_visual_emb_frame = []
+                                for frame_i in range(len(visual_emb_frame)):
+                                    if current_point > len(top_indices) - 1:
+                                        mix_visual_emb_frame.append(
+                                            visual_emb_frame[frame_i]
+                                        )
+                                        continue
+                                    if frame_i == top_indices[current_point]:
+                                        mix_visual_emb_frame.append(
+                                            visual_emb_frame_highres[frame_i]
+                                        )
+                                        current_point += 1
+                                    else:
+                                        mix_visual_emb_frame.append(
+                                            visual_emb_frame[frame_i]
+                                        )
+                                image_features[cur_image_idx] = torch.cat(
+                                    mix_visual_emb_frame, dim=0
+                                )
+                # ablation drop
+
+                if (
+                    max_visual_len < visual_len
+                    and frame_split_sizes is not None
+                    and not mix_token
+                ):
+                    visual_emb_frame = image_features[cur_image_idx].reshape(
+                        frame_split_sizes[cur_image_idx],
+                        -1,
+                        image_features[cur_image_idx].shape[-1],
                     )
 
-            cur_new_input_embeds = [x.to(self.device) for x in cur_new_input_embeds]
+                    new_visual_emb_frames = []
+                    for start_idx in range(0, len(visual_emb_frame), 8):
+                        end_idx = min(start_idx + 8, len(visual_emb_frame))
+                        chunk_feature = visual_emb_frame[start_idx:end_idx]  # 8, HW, C
+                        if len(chunk_feature) == 1:
+                            new_visual_emb_frames.append(chunk_feature[0])
+                            continue
+                        sim = F.cosine_similarity(
+                            chunk_feature[0]
+                            .unsqueeze(0)
+                            .repeat_interleave(len(chunk_feature[1:]), dim=0),
+                            chunk_feature[1:],
+                            dim=-1,
+                        )
+                        new_visual_emb_frame = torch.cat(
+                            [
+                                chunk_feature[0],
+                                chunk_feature[1:].flatten(0, 1)[
+                                    sim.flatten(0, 1)
+                                    < getattr(
+                                        self.get_model().config, "drop_threshold", 0.7
+                                    )
+                                ],
+                            ],
+                            dim=0,
+                        )
+                        new_visual_emb_frames.append(new_visual_emb_frame)
 
-            cur_new_input_embeds = torch.cat(cur_new_input_embeds)
-            cur_new_labels = torch.cat(cur_new_labels)
+                    reduced_visual_len = sum([x.shape[0] for x in new_visual_emb_frames])
 
-            new_input_embeds.append(cur_new_input_embeds)
-            new_labels.append(cur_new_labels)
+                    if reduced_visual_len > max_visual_len:
+                        force_remove = math.ceil(
+                            (reduced_visual_len - max_visual_len)
+                            / len(new_visual_emb_frames)
+                        )
+                        for chunk_i in range(len(new_visual_emb_frames)):
+                            new_visual_emb_frames[chunk_i] = new_visual_emb_frames[chunk_i][
+                                :-force_remove
+                            ]
+                        new_visual_emb_frames = torch.cat(new_visual_emb_frames, dim=0)
+                    else:
+                        new_visual_emb_frames = torch.cat(new_visual_emb_frames, dim=0)
+
+                    image_features[cur_image_idx] = new_visual_emb_frames[:max_visual_len]
+
+                for i in range(num_images + 1):
+                    cur_new_input_embeds.append(cur_input_embeds_no_im[i])
+                    cur_new_labels.append(cur_labels_noim[i])
+                    if i < num_images:
+                        cur_image_features = image_features[cur_image_idx]
+                        cur_image_idx += 1
+                        cur_new_input_embeds.append(cur_image_features)
+                        cur_new_labels.append(
+                            torch.full(
+                                (cur_image_features.shape[0],),
+                                IGNORE_INDEX,
+                                device=cur_labels.device,
+                                dtype=cur_labels.dtype,
+                            )
+                        )
+
+                cur_new_input_embeds = [x.to(self.device) for x in cur_new_input_embeds]
+
+                cur_new_input_embeds = torch.cat(cur_new_input_embeds)
+                cur_new_labels = torch.cat(cur_new_labels)
+
+                new_input_embeds.append(cur_new_input_embeds)
+                new_labels.append(cur_new_labels)
 
         # Truncate sequences to max length as image embeddings can make the sequence longer
         tokenizer_model_max_length = getattr(
