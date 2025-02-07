@@ -1076,8 +1076,10 @@ def train() -> None:
     trainable_params = sum(
         p.numel() for p in model.get_model().parameters() if p.requires_grad
     )
+    head_params = sum(p.numel() for p in model.lm_head.parameters())
     logging.info(f'Total params: {total_params}')
     logging.info(f'Trainable params: {trainable_params}')
+    logging.info(f'LM head params: {head_params}')
 
     if training_args.bf16:
         model.to(torch.bfloat16)
@@ -1091,11 +1093,19 @@ def train() -> None:
         return model
 
     model = convert_bn_to_float(model)
+    with open('cambrianllama.txt', 'w', encoding='utf-8') as f:
+        f.write(str(model))
 
-    # os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
+    os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
     # pyre-fixme[16]: `DataClass` has no attribute `fsdp_config`.
-    # training_args.fsdp_config["use_orig_params"] = True
+    training_args.fsdp_config["use_orig_params"] = True
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
+
+    with open('environ.json', 'w', encoding = 'utf-8') as f:
+        json.dump(dict(os.environ), f, indent=4)
+
+    with open('fsdp_config.json', 'w', encoding = 'utf-8') as f:
+        json.dump(dict(training_args.fsdp_config), f, indent=4)
 
     callbacks = []
     # configure TensorboardCallback to upload to manifold
@@ -1126,6 +1136,7 @@ def train() -> None:
         **data_module,
     )
 
+    torch.cuda.memory._record_memory_history(max_entries=100000)
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
@@ -1134,6 +1145,8 @@ def train() -> None:
         trainer.train()
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
     trainer.evaluate()
+    torch.cuda.memory._dump_snapshot(f"longvu_llama_{global_rank}.pkl")
+    torch.cuda.memory._record_memory_history(enabled=None)
     trainer.save_state()
 
     safe_save_model_for_hf_trainer(
@@ -1144,7 +1157,4 @@ def train() -> None:
 
 
 if __name__ == "__main__":
-    torch.cuda.memory._record_memory_history(max_entries=100000)
     train()
-    torch.cuda.memory._dump_snapshot("longvu_llama_0.pkl")
-    torch.cuda.memory._record_memory_history(enabled=None)

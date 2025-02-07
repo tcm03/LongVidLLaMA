@@ -1084,7 +1084,8 @@ def train() -> None:
         return model
 
     model = convert_bn_to_float(model)
-
+    with open('cambrianqwen.txt', 'w', encoding = 'utf-8') as f:
+        f.write(str(model))
     os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
     # pyre-fixme[16]: `DataClass` has no attribute `fsdp_config`.
     training_args.fsdp_config["use_orig_params"] = True

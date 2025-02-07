@@ -1,0 +1,80 @@
+CambrianQwenForCausalLM(
+  (model): CambrianQwenModel(
+    (embed_tokens): Embedding(152064, 3584)
+    (layers): ModuleList(
+      (0-27): 28 x Qwen2DecoderLayer(
+        (self_attn): Qwen2SdpaAttention(
+          (q_proj): Linear(in_features=3584, out_features=3584, bias=True)
+          (k_proj): Linear(in_features=3584, out_features=512, bias=True)
+          (v_proj): Linear(in_features=3584, out_features=512, bias=True)
+          (o_proj): Linear(in_features=3584, out_features=3584, bias=False)
+          (rotary_emb): Qwen2RotaryEmbedding()
+        )
+        (mlp): Qwen2MLP(
+          (gate_proj): Linear(in_features=3584, out_features=18944, bias=False)
+          (up_proj): Linear(in_features=3584, out_features=18944, bias=False)
+          (down_proj): Linear(in_features=18944, out_features=3584, bias=False)
+          (act_fn): SiLU()
+        )
+        (input_layernorm): Qwen2RMSNorm()
+        (post_attention_layernorm): Qwen2RMSNorm()
+      )
+    )
+    (norm): Qwen2RMSNorm()
+    (mm_projector): Sequential(
+      (0): Linear(in_features=1024, out_features=3584, bias=True)
+      (1): GELU(approximate='none')
+      (2): Linear(in_features=3584, out_features=3584, bias=True)
+    )
+    (mm_projector_aux_0): Sequential(
+      (0): Linear(in_features=1152, out_features=1024, bias=True)
+      (1): GELU(approximate='none')
+      (2): Linear(in_features=1024, out_features=1024, bias=True)
+      (3): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+    )
+    (mm_projector_aux_1): Sequential(
+      (0): Linear(in_features=1536, out_features=1024, bias=True)
+      (1): GELU(approximate='none')
+      (2): Linear(in_features=1024, out_features=1024, bias=True)
+      (3): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+    )
+    (vision_sampler_0): VisionTokenSampler(
+      (layers): ModuleList(
+        (0-2): 3 x VisionCrossAttentionLayer(
+          (proj_context): Linear(in_features=1024, out_features=1024, bias=False)
+          (proj_in): Linear(in_features=2048, out_features=1024, bias=False)
+          (proj_out): MLP(
+            (linear_1): Linear(in_features=1024, out_features=1024, bias=False)
+            (act): GELU(approximate='none')
+            (linear_2): Linear(in_features=1024, out_features=1024, bias=False)
+          )
+          (norm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+          (cross_attn): MultiKVCrossAttention(
+            (q_proj): Sequential(
+              (0): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+              (1): Linear(in_features=1024, out_features=1024, bias=False)
+            )
+            (k_proj_0): Sequential(
+              (0): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+              (1): Linear(in_features=1024, out_features=1024, bias=False)
+            )
+            (v_proj_0): Sequential(
+              (0): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+              (1): Linear(in_features=1024, out_features=1024, bias=False)
+            )
+            (k_proj_1): Sequential(
+              (0): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+              (1): Linear(in_features=1024, out_features=1024, bias=False)
+            )
+            (v_proj_1): Sequential(
+              (0): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+              (1): Linear(in_features=1024, out_features=1024, bias=False)
+            )
+            (o_proj): Linear(in_features=1024, out_features=1024, bias=False)
+          )
+        )
+      )
+    )
+  )
+  (lm_head): Linear(in_features=3584, out_features=152064, bias=False)
+)
