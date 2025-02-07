@@ -9,7 +9,7 @@ from typing import List, Dict, Optional
 def get_cuda_device() -> Optional[torch.device]:
     if not torch.cuda.is_available():
         return None
-    rank = os.environ.get("RANK", 0)
+    rank = int(os.environ.get("RANK", ""))
     return torch.device("cuda", rank)
 
 # Get all Python files in the project directory
