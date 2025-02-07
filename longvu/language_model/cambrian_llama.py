@@ -41,7 +41,7 @@ from transformers.modeling_outputs import (
 )
 from transformers.utils import logging as lgging
 import logging
-from ..resource_logging import MeasureResourceUsage
+from ..resource_logging import *
 
 from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
 
@@ -293,7 +293,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
 
         final_vision_feature_size = None
         if isinstance(images, list) and isinstance(images[0], torch.Tensor):
-            logging.info(f'images[0].shape={images[0].shape}')
+            debug_tensor('images[0]', images[0])
 
         if inputs_embeds is None:
             with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> prepare_inputs_labels_for_multimodal"):
@@ -324,6 +324,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                     for i, input_embed in enumerate(inputs_embeds):
                         if isinstance(input_embed, torch.Tensor):
                             logging.info(f'inputs_embeds[{i}].dtype: {input_embed.dtype}')
+        
         if IS_XLA_AVAILABLE:
             # Very Important for TorchXLA
             # self.model.gradient_checkpointing = False
@@ -351,6 +352,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             return_dict if return_dict is not None else self.config.use_return_dict
         )
         
+        torch.cuda.empty_cache()
         
         # training
         if IS_XLA_AVAILABLE:
@@ -444,6 +446,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                         # final_vision_feature_size=final_vision_feature_size,
                     )
 
+        torch.cuda.empty_cache()
         with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> lm_head, logits"):
             hidden_states = outputs[0]
             if self.config.pretraining_tp > 1:
