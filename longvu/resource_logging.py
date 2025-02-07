@@ -143,7 +143,7 @@ class MeasureResourceUsage:
             logging.debug(f'Section name: {self.prefix}')
             logging.debug(f'File: {caller_filename}, Line: {caller_lineno}')
             logging.debug(f'Time: {end_time - self.start_time:.2f} seconds')
-            logging.debug(f'Device: {device}')
+            logging.debug(f'Device: {self.device}')
             logging.debug(f'Allocated before block: {self.start_allocated/1e6:.2f} MB')
             logging.debug(f'Allocated after block:  {end_allocated/1e6:.2f} MB')
             logging.debug(f'Net allocated change:  {(end_allocated - self.start_allocated)/1e6:.2f} MB')
