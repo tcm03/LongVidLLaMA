@@ -39,7 +39,7 @@ def debug_tensor(prefix: str, tensor: torch.Tensor):
     logging.debug(f'File: {caller_filename}, Line: {caller_lineno}')
     logging.debug(f"{prefix}: [{tensor.shape}, {tensor.dtype}, {tensor.device}]")
 
-def measure_resource_usage(prefix: str):
+def measure_resource_usage(prefix: str = ""):
     # Validate the device and collect project Python files
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available on this system.")
@@ -99,7 +99,7 @@ def measure_resource_usage(prefix: str):
     return decorator
 
 class MeasureResourceUsage:
-    def __init__(self, prefix: str):
+    def __init__(self, prefix: str = ""):
         if not torch.cuda.is_available():
             raise RuntimeError("CUDA is not available on this system.")
         device = get_cuda_device()

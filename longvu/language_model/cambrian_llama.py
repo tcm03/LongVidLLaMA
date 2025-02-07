@@ -296,7 +296,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             logging.info(f'images[0].shape={images[0].shape}')
 
         if inputs_embeds is None:
-            with MeasureResourceUsage():
+            with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> prepare_inputs_labels_for_multimodal"):
                 (
                     input_ids,
                     position_ids,
@@ -380,7 +380,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
 
         # inference
         else:
-            with MeasureResourceUsage():
+            with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> model.forward"):
                 if hasattr(self, "vision_tower_aux_feature_list"):
                     # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
                     # pyre-fixme[29]: `CambrianLlamaModel` is not a function.
@@ -444,7 +444,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                         # final_vision_feature_size=final_vision_feature_size,
                     )
 
-        with MeasureResourceUsage():
+        with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> lm_head, logits"):
             hidden_states = outputs[0]
             if self.config.pretraining_tp > 1:
                 lm_head_slices = self.lm_head.weight.split(
