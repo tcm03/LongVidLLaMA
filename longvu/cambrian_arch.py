@@ -900,136 +900,140 @@ class CambrianMetaForCausalLM(ABC):
                 vision_tower_aux_feature_list = []
                 vision_tower_aux_attention_masks_list = []
                 # get vision tokens from each vision tower
-                for aux_i in range(len(vision_tower_aux_list)):
-                    image_aux_features = image_aux_features_list[aux_i]
-                    logging.info(f'aux_i={aux_i}, image_aux_features.dtype = {image_aux_features.dtype}')
-                    image_aux_features = getattr(
-                        self.get_model(), "mm_projector_aux_{}".format(aux_i)
-                    )(image_aux_features).to(dtype)
-                    if aux_i == 0:
-                        global_context_feature = image_aux_features.mean(1).view(
-                            bs, 1, 1, -1
-                        )
+                with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> SVA -> mm_projector_aux_0/1"):
+                    for aux_i in range(len(vision_tower_aux_list)):
+                        image_aux_features = image_aux_features_list[aux_i]
+                        logging.info(f'aux_i={aux_i}, image_aux_features.dtype = {image_aux_features.dtype}')
+                        image_aux_features = getattr(
+                            self.get_model(), "mm_projector_aux_{}".format(aux_i)
+                        )(image_aux_features).to(dtype)
+                        if aux_i == 0:
+                            global_context_feature = image_aux_features.mean(1).view(
+                                bs, 1, 1, -1
+                            )
 
-                    vision_tower_aux_feature_list.append(image_aux_features)
+                        vision_tower_aux_feature_list.append(image_aux_features)
+
+                
                 input_mix_res = True
                 input_high_res = True
                 # perform vision sampling for each query group
-                for query_group_i, query_num in enumerate(query_num_list):
-                    query_features_i = (
-                        self.get_model()
-                        .vision_query[query_group_i, :]
-                        .view(1, 1, 1, -1)
-                        .expand(bs, query_num, -1, -1)
-                    )
-                    global_context_feature_i = global_context_feature.expand(
-                        -1, query_num, 1, -1
-                    ).flatten(0, 1)
-                    query_side_len = int(query_num**0.5)
-                    if IS_XLA_AVAILABLE:
-                        (
-                            vision_tower_aux_feature_list_i,
-                            vision_tower_aux_attention_masks_list_i,
-                        ) = self.rearrange_vision_tower_features_train(
-                            vision_tower_aux_feature_list,
-                            image_aux_attention_masks_list,
-                            query_side_len,
-                        )
-                    else:
-                        (
-                            vision_tower_aux_feature_list_i,
-                            vision_tower_aux_attention_masks_list_i,
-                        ) = self.rearrange_vision_tower_features_inference(
-                            vision_tower_aux_feature_list, query_side_len, image_sizes
-                        )
-
-                    query_features_i = getattr(
-                        self.get_model(), "vision_sampler_{}".format(query_group_i)
-                    )(
-                        query_features_i.flatten(0, 1),
-                        global_context_feature_i,
-                        *vision_tower_aux_feature_list_i,
-                        *vision_tower_aux_attention_masks_list_i,
-                    )
-                    query_features_i = query_features_i.view(bs, query_num, -1)
-
-                    if split_sizes is not None:
-                        try:
-                            if "llama" in self.get_model().config.model_type:
-                                text_len = torch.where(input_ids[0] == 128002)[-1][0]
-                            else:
-                                text_len = torch.where(input_ids[0] == 151643)[-1][0]
-                        except:
-                            text_len = len(input_ids[0])
-                        max_visual_len = (
-                            self.get_model().config.tokenizer_model_max_length
-                            - text_len
-                            - getattr(self.get_model().config, "inference_max_length", 16)
-                        )
-                        max_num_frames = max(
-                            1,
-                            math.floor(max_visual_len // (final_height * final_width)),
-                        )
-                        max_num_frames_low = max(
-                            1,
-                            math.floor(
-                                max_visual_len
-                                // (self.get_model().config.lowres_token ** 2)
-                            ),
-                        )
-                        if split_sizes[0] < max_num_frames:
-                            input_mix_res = False
-                        elif split_sizes[0] > max_num_frames_low:
-                            input_mix_res = False
-                            input_high_res = False
-
-                    # input_mix_res = False  # ablation
-
-                    if (getattr(self.config, "highres", False)) and input_mix_res:
-                        _query_features_i = (
-                            query_features_i.permute(0, 2, 1)
-                            .contiguous()
-                            .view(bs, -1, query_side_len, query_side_len)
-                        )
-                        _query_features_i = F.interpolate(
-                            _query_features_i.float(),
-                            size=(
-                                self.get_model().config.lowres_token,
-                                self.get_model().config.lowres_token,
-                            ),
-                            mode="bilinear",
-                            align_corners=False,
-                        ).to(dtype=query_features_i.dtype)
-                        _query_features_i = (
-                            _query_features_i.permute(0, 2, 3, 1).contiguous().flatten(1, 2)
-                        )
-                        final_image_features_down_list.append(_query_features_i)
-
-                    # interpolate to the final target size
-                    if query_side_len != final_height:
+                with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> SVA -> query_group"):
+                    for query_group_i, query_num in enumerate(query_num_list):
                         query_features_i = (
-                            query_features_i.permute(0, 2, 1)
-                            .contiguous()
-                            .view(bs, -1, query_side_len, query_side_len)
+                            self.get_model()
+                            .vision_query[query_group_i, :]
+                            .view(1, 1, 1, -1)
+                            .expand(bs, query_num, -1, -1)
                         )
-                        if input_high_res:
-                            query_features_i = F.interpolate(
-                                query_features_i.float(),
-                                size=(final_height, final_width),
-                                mode="bilinear",
-                                align_corners=False,
-                            ).to(dtype=query_features_i.dtype)
+                        global_context_feature_i = global_context_feature.expand(
+                            -1, query_num, 1, -1
+                        ).flatten(0, 1)
+                        query_side_len = int(query_num**0.5)
+                        if IS_XLA_AVAILABLE:
+                            (
+                                vision_tower_aux_feature_list_i,
+                                vision_tower_aux_attention_masks_list_i,
+                            ) = self.rearrange_vision_tower_features_train(
+                                vision_tower_aux_feature_list,
+                                image_aux_attention_masks_list,
+                                query_side_len,
+                            )
                         else:
-                            query_features_i = F.interpolate(
-                                query_features_i.float(),
-                                size=(8, 8),
+                            (
+                                vision_tower_aux_feature_list_i,
+                                vision_tower_aux_attention_masks_list_i,
+                            ) = self.rearrange_vision_tower_features_inference(
+                                vision_tower_aux_feature_list, query_side_len, image_sizes
+                            )
+
+                        query_features_i = getattr(
+                            self.get_model(), "vision_sampler_{}".format(query_group_i)
+                        )(
+                            query_features_i.flatten(0, 1),
+                            global_context_feature_i,
+                            *vision_tower_aux_feature_list_i,
+                            *vision_tower_aux_attention_masks_list_i,
+                        )
+                        query_features_i = query_features_i.view(bs, query_num, -1)
+
+                        if split_sizes is not None:
+                            try:
+                                if "llama" in self.get_model().config.model_type:
+                                    text_len = torch.where(input_ids[0] == 128002)[-1][0]
+                                else:
+                                    text_len = torch.where(input_ids[0] == 151643)[-1][0]
+                            except:
+                                text_len = len(input_ids[0])
+                            max_visual_len = (
+                                self.get_model().config.tokenizer_model_max_length
+                                - text_len
+                                - getattr(self.get_model().config, "inference_max_length", 16)
+                            )
+                            max_num_frames = max(
+                                1,
+                                math.floor(max_visual_len // (final_height * final_width)),
+                            )
+                            max_num_frames_low = max(
+                                1,
+                                math.floor(
+                                    max_visual_len
+                                    // (self.get_model().config.lowres_token ** 2)
+                                ),
+                            )
+                            if split_sizes[0] < max_num_frames:
+                                input_mix_res = False
+                            elif split_sizes[0] > max_num_frames_low:
+                                input_mix_res = False
+                                input_high_res = False
+
+                        # input_mix_res = False  # ablation
+
+                        if (getattr(self.config, "highres", False)) and input_mix_res:
+                            _query_features_i = (
+                                query_features_i.permute(0, 2, 1)
+                                .contiguous()
+                                .view(bs, -1, query_side_len, query_side_len)
+                            )
+                            _query_features_i = F.interpolate(
+                                _query_features_i.float(),
+                                size=(
+                                    self.get_model().config.lowres_token,
+                                    self.get_model().config.lowres_token,
+                                ),
                                 mode="bilinear",
                                 align_corners=False,
                             ).to(dtype=query_features_i.dtype)
-                        query_features_i = (
-                            query_features_i.permute(0, 2, 3, 1).contiguous().flatten(1, 2)
-                        )
-                    final_image_features_list.append(query_features_i)
+                            _query_features_i = (
+                                _query_features_i.permute(0, 2, 3, 1).contiguous().flatten(1, 2)
+                            )
+                            final_image_features_down_list.append(_query_features_i)
+
+                        # interpolate to the final target size
+                        if query_side_len != final_height:
+                            query_features_i = (
+                                query_features_i.permute(0, 2, 1)
+                                .contiguous()
+                                .view(bs, -1, query_side_len, query_side_len)
+                            )
+                            if input_high_res:
+                                query_features_i = F.interpolate(
+                                    query_features_i.float(),
+                                    size=(final_height, final_width),
+                                    mode="bilinear",
+                                    align_corners=False,
+                                ).to(dtype=query_features_i.dtype)
+                            else:
+                                query_features_i = F.interpolate(
+                                    query_features_i.float(),
+                                    size=(8, 8),
+                                    mode="bilinear",
+                                    align_corners=False,
+                                ).to(dtype=query_features_i.dtype)
+                            query_features_i = (
+                                query_features_i.permute(0, 2, 3, 1).contiguous().flatten(1, 2)
+                            )
+                        final_image_features_list.append(query_features_i)
 
                 if IS_XLA_AVAILABLE:
                     (
