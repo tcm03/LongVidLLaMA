@@ -920,6 +920,7 @@ class CambrianMetaForCausalLM(ABC):
                 # perform vision sampling for each query group
                 with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> SVA -> query_group"):
                     for query_group_i, query_num in enumerate(query_num_list):
+                        logging.debug(f'query_group_i={query_group_i}')
                         query_features_i = (
                             self.get_model()
                             .vision_query[query_group_i, :]
