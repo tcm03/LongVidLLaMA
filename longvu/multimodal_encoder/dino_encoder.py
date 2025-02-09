@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import logging
 from transformers import AutoImageProcessor, Dinov2Config, Dinov2Model
-import deepspeed
+# import deepspeed
 from .base_encoder import BaseVisionTower, ProcessorWrapper
 
 
@@ -25,12 +25,12 @@ class DinoVisionTower(BaseVisionTower):
 
     def load_model(self, device_map=None):
 
-        # self.vision_tower = Dinov2Model.from_pretrained(self.vision_tower_name)
-        with deepspeed.zero.Init(enabled=False):
-            # @tcm: To exclude the convolution weights from ZeRO‑3 flattening
-            # @tcm: Expected error to be fixed: F.conv2d(input, weight, bias, self.stride,
-            # RuntimeError: weight should have at least three dimensions
-            self.vision_tower = Dinov2Model.from_pretrained(self.vision_tower_name)
+        self.vision_tower = Dinov2Model.from_pretrained(self.vision_tower_name)
+        # with deepspeed.zero.Init(enabled=False):
+        #     # @tcm: To exclude the convolution weights from ZeRO‑3 flattening
+        #     # @tcm: Expected error to be fixed: F.conv2d(input, weight, bias, self.stride,
+        #     # RuntimeError: weight should have at least three dimensions
+        #     self.vision_tower = Dinov2Model.from_pretrained(self.vision_tower_name)
         
         """ValueError: Dinov2Model does not support `device_map='auto'`. To implement support, the model class needs to implement the `_no_split_modules` attribute."""
         self.vision_tower._no_split_modules = ["Dinov2SwiGLUFFN"]
