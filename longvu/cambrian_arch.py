@@ -920,6 +920,7 @@ class CambrianMetaForCausalLM(ABC):
                 # perform vision sampling for each query group
                 with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> SVA -> query_group"):
                     for query_group_i, query_num in enumerate(query_num_list):
+                        logging.debug(f'query_group_i={query_group_i}')
                         query_features_i = (
                             self.get_model()
                             .vision_query[query_group_i, :]
@@ -1033,10 +1034,6 @@ class CambrianMetaForCausalLM(ABC):
                             query_features_i = (
                                 query_features_i.permute(0, 2, 3, 1).contiguous().flatten(1, 2)
                             )
-                        if isinstance(query_features_i, torch.Tensor):
-                            debug_tensor(f"query_group_i={query_group_i}:", query_features_i)
-                        else:
-                            logging.debug('query_features_i not tensor')
                         final_image_features_list.append(query_features_i)
 
                 if IS_XLA_AVAILABLE:
@@ -1052,8 +1049,11 @@ class CambrianMetaForCausalLM(ABC):
                         -1, final_height * final_width, 1, -1
                     ).flatten(0, 1)
             else:
+                logging.debug('no config sva')
                 final_image_features_list = image_aux_features_list
 
+        for i, final_image_feature in enumerate(final_image_features_list):
+            debug_tensor(f"final_image_features_list[{i}]:", final_image_feature)
         image_features = torch.cat(final_image_features_list, -1)
         image_features = self.get_model().mm_projector(image_features).to(dtype)
 
