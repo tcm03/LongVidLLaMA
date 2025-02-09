@@ -1050,6 +1050,8 @@ class CambrianMetaForCausalLM(ABC):
             else:
                 final_image_features_list = image_aux_features_list
 
+        for i, final_image_feature in enumerate(final_image_features_list):
+            debug_tensor(f"final_image_features_list[{i}]:", final_image_feature)
         image_features = torch.cat(final_image_features_list, -1)
         image_features = self.get_model().mm_projector(image_features).to(dtype)
 
