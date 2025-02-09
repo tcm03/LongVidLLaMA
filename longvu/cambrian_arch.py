@@ -1054,6 +1054,7 @@ class CambrianMetaForCausalLM(ABC):
                         -1, final_height * final_width, 1, -1
                     ).flatten(0, 1)
             else:
+                logging.debug('no config sva')
                 final_image_features_list = image_aux_features_list
 
         for i, final_image_feature in enumerate(final_image_features_list):
