@@ -1,10 +1,6 @@
 {
     "min_num_params": 0,
-    "transformer_layer_cls_to_wrap": [
-        "LlamaDecoderLayer"
-    ],
     "xla": false,
     "xla_fsdp_v2": false,
-    "xla_fsdp_grad_ckpt": false,
-    "use_orig_params": true
+    "xla_fsdp_grad_ckpt": false
 }

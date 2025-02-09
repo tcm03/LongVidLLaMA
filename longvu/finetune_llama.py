@@ -63,7 +63,7 @@ import logging
 TENSORBOARD_LOG_DIR_NAME: str = "tensorboard_logs"
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(filename)s:%(lineno)d - %(funcName)s - %(levelname)s - %(message)s"
 )
 
@@ -1096,9 +1096,9 @@ def train() -> None:
     with open('cambrianllama.txt', 'w', encoding='utf-8') as f:
         f.write(str(model))
 
-    os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
+    # os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
     # pyre-fixme[16]: `DataClass` has no attribute `fsdp_config`.
-    training_args.fsdp_config["use_orig_params"] = True
+    # training_args.fsdp_config["use_orig_params"] = True
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
 
     with open('environ.json', 'w', encoding = 'utf-8') as f:
