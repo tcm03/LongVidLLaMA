@@ -1033,6 +1033,11 @@ class CambrianMetaForCausalLM(ABC):
                             query_features_i = (
                                 query_features_i.permute(0, 2, 3, 1).contiguous().flatten(1, 2)
                             )
+                        if isinstance(query_features_i, torch.Tensor):
+                            debug_tensor(f"query_features_i[{query_group_i}]:", query_features_i)
+                        elif isinstance(query_features_i, list) or isinstance(query_features_i, tuple):
+                            for i, query_feature in enumerate(query_features_i):
+                                debug_tensor(f"query_features_i[{query_group_i}][{i}]:", query_feature)
                         final_image_features_list.append(query_features_i)
 
                 if IS_XLA_AVAILABLE:
