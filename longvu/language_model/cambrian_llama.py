@@ -313,8 +313,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                     image_aux_attention_masks_list,
                     image_sizes,
                 )
-                # inputs_embeds: [torch.Size([1, 5361, 3072]), torch.float32, cuda:1]
-                # tcm_logger.debug(f'inputs_embeds last tokens: {inputs_embeds[..., -100:]}')
+                # inputs_embeds: [torch.Size([1, 5361, 3072]), torch.float32, cuda:1] for 61 frames
         
         if IS_XLA_AVAILABLE:
             # Very Important for TorchXLA
@@ -334,17 +333,14 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no attribute `config`.
             else self.config.output_attentions
         ) # False
-        # tcm_logger.debug(f"output_attentions: {output_attentions}")
         output_hidden_states = (
             output_hidden_states
             if output_hidden_states is not None
             else self.config.output_hidden_states
         ) # False
-        # tcm_logger.debug(f"output_hidden_states: {output_hidden_states}")
         return_dict = (
             return_dict if return_dict is not None else self.config.use_return_dict
         ) # True
-        # tcm_logger.debug(f"return_dict: {return_dict}")
         
         
         # training
@@ -441,6 +437,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
 
         with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> lm_head, logits"):
             hidden_states = outputs[0]
+            debug_tensor("hidden_states", hidden_states)
             if self.config.pretraining_tp > 1:
                 lm_head_slices = self.lm_head.weight.split(
                     self.vocab_size // self.config.pretraining_tp, dim=0
@@ -453,12 +450,15 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             else:
                 logits = self.lm_head(hidden_states)
             logits = logits.float()
+            debug_tensor("logits", logits)
 
             loss = None
             if labels is not None:
                 # Shift so that tokens < n predict n
                 shift_logits = logits[..., :-1, :].contiguous()
+                debug_tensor("shift_logits", shift_logits)
                 shift_labels = labels[..., 1:].contiguous()
+                debug_tensor("shift_labels", shift_labels)
                 # Flatten the tokens
                 loss_fct = CrossEntropyLoss()
                 shift_logits = shift_logits.view(-1, self.config.vocab_size)
@@ -466,6 +466,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 # Enable model parallelism
                 shift_labels = shift_labels.to(shift_logits.device)
                 loss = loss_fct(shift_logits, shift_labels)
+                tcm_logger.debug(f"Cross-Entropy Loss: {loss.item()}")
 
         if not return_dict:
             output = (logits,) + outputs[1:]
