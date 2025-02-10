@@ -803,7 +803,7 @@ class CambrianMetaForCausalLM(ABC):
         image_sizes=None,
     ):
         if isinstance(input_ids, torch.Tensor):
-            debug_tensor("\nStart prepare_inputs_labels_for_multimodal, input_ids", input_ids)
+            debug_tensor("Start prepare_inputs_labels_for_multimodal, input_ids", input_ids)
         if isinstance(labels, torch.Tensor):
             debug_tensor("Start prepare_inputs_labels_for_multimodal, labels", labels)
         if isinstance(images, list):
@@ -1372,7 +1372,7 @@ class CambrianMetaForCausalLM(ABC):
         with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> Embedding+Cross-modal+STC"):
             tcm_logger.debug(f"len(input_ids): {len(input_ids)}")
             for batch_idx, cur_input_ids in enumerate(input_ids):
-                debug_tensor("\nbatch_idx={batch_idx}, cur_input_ids", cur_input_ids)
+                debug_tensor(f"batch_idx={batch_idx}, cur_input_ids", cur_input_ids)
                 num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
                 if num_images == 0:
                     cur_image_features = image_features[cur_image_idx]
