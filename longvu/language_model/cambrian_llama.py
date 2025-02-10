@@ -41,7 +41,9 @@ from transformers.modeling_outputs import (
 )
 from transformers.utils import logging as lgging
 import logging
-from ..resource_logging import *
+import sys
+sys.path.append('.')
+from longvu.resource_logging import *
 
 from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
 
