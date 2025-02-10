@@ -14,6 +14,7 @@ from transformers.trainer import ALL_LAYERNORM_LAYERS, get_parameter_names, has_
 from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING_NAMES
 from transformers.modeling_outputs import CausalLMOutputWithPast
 import logging
+from resource_logging import *
 tcm_logger = logging.getLogger("tcm_logger")
 
 
