@@ -44,6 +44,11 @@ from transformers import StoppingCriteria
 
 from longvu.mm_utils import KeywordsStoppingCriteria
 
+import logging
+tcm_logger = logging.getLogger("tcm_logger")
+from resource_logging import *
+
+
 
 # pyre-fixme[3]: Return type must be annotated.
 # pyre-fixme[2]: Parameter must be annotated.
@@ -1346,6 +1351,7 @@ def preprocess(
         input_ids = conversations_tokenized["input_ids"]
 
     targets = copy.deepcopy(input_ids)
+    tcm_logger.debug(f"input_ids=targets (before human masking): {targets}")
     for target, source in zip(targets, sources):
         if has_image:
             # pyre-fixme[61]: `header` is undefined, or not always defined.
