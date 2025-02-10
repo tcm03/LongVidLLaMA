@@ -733,10 +733,15 @@ def preprocess_llama3(
     if has_image:
         tokenizer.add_tokens(["<image>"], special_tokens=True)
     image_token_index = tokenizer.convert_tokens_to_ids("<image>")
+    tcm_logger.debug(f"In preprocess_llama3: image_token_index: {image_token_index}")
     bos_token_id = tokenizer.convert_tokens_to_ids("<|begin_of_text|>")
+    tcm_logger.debug(f"In preprocess_llama3: bos_token_id: {bos_token_id}")
     start_header_id = tokenizer.convert_tokens_to_ids("<|start_header_id|>")
+    tcm_logger.debug(f"In preprocess_llama3: start_header_id: {start_header_id}")
     end_header_id = tokenizer.convert_tokens_to_ids("<|end_header_id|>")
+    tcm_logger.debug(f"In preprocess_llama3: end_header_id: {end_header_id}")
     eot_id = tokenizer.convert_tokens_to_ids("<|eot_id|>")
+    tcm_logger.debug(f"In preprocess_llama3: eot_id: {eot_id}")
 
     unmask_tokens = [
         "<|begin_of_text|>",
@@ -759,6 +764,7 @@ def preprocess_llama3(
         return input_ids
 
     nl_tokens = tokenizer.convert_tokens_to_ids("\n\n")
+    tcm_logger.debug(f"In preprocess_llama3: nl_tokens: {nl_tokens}")
 
     # chat_template = "{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\\n\\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{%- if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\\n\\n' }}{%- endif %}"
     chat_template = "{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}"
@@ -767,6 +773,7 @@ def preprocess_llama3(
     # Apply prompt templates
     input_ids, targets = [], []
     for i, source in enumerate(sources):
+        tcm_logger.debug(f"Sources[{i}]: {source}")
         if roles[source[0]["from"]] != roles["human"]:
             source = source[1:]
 
@@ -774,14 +781,17 @@ def preprocess_llama3(
 
         # New version, use apply chat template
         # Build system message for each sentence
-        input_id += tokenizer.apply_chat_template(
+        sys_mess_tmp = tokenizer.apply_chat_template(
             [{"role": "system", "content": system_message}]
             # pyre-fixme[6]: For 1st argument expected `Union[int, str]` but got `slice`.
         )[:-4]
+        tcm_logger.debug(f"sys_mess_tmp: {sys_mess_tmp}")
+        input_id += sys_mess_tmp
 
         target += [IGNORE_INDEX] * len(input_id)
 
         for conv in source:
+            tcm_logger.debug(f"Conv: {conv}")
             # Make sure llava data can load
             try:
                 role = conv["role"]
@@ -797,6 +807,7 @@ def preprocess_llama3(
             # pyre-fixme[6]: For 1st argument expected `Union[int, str]` but got
             #  `slice`.
             encode_id = tokenizer.apply_chat_template(conv)[1:-4]
+            tcm_logger.debug(f"encode_id: {encode_id}")
             input_id += encode_id
             if role in ["user", "system"]:
                 target += [IGNORE_INDEX] * len(encode_id)
@@ -812,7 +823,9 @@ def preprocess_llama3(
         input_ids.append(input_id)
         targets.append(target)
     input_ids = torch.tensor(input_ids, dtype=torch.long)
+    tcm_logger.debug(f"input_ids: {input_ids}")
     targets = torch.tensor(targets, dtype=torch.long)
+    tcm_logger.debug(f"targets: {targets}")
 
     # print("input_ids", input_ids, flush=True)
     # print("targets", targets, flush=True)
