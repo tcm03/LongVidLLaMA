@@ -1172,6 +1172,7 @@ def train() -> None:
 #        trainer.train()
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
     trainer.train()
+    tcm_logger.info("---------------------- EVALUATION -----------------------------")
     trainer.evaluate()
     torch.cuda.memory._dump_snapshot(f"longvu_llama_{global_rank}.pkl")
     torch.cuda.memory._record_memory_history(enabled=None)
