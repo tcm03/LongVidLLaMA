@@ -802,13 +802,15 @@ class CambrianMetaForCausalLM(ABC):
         image_aux_attention_masks_list=None,
         image_sizes=None,
     ):
-        # if isinstance(input_ids, torch.Tensor):
-        #     debug_tensor("input_ids", input_ids)
-        # if isinstance(images, list):
-        #     for i, image in enumerate(images):
-        #         if isinstance(image, torch.Tensor):
-        #             debug_tensor(f'images[{i}]', image)
-        # vision_tower = self.get_vision_tower()
+        if isinstance(input_ids, torch.Tensor):
+            debug_tensor("\nStart prepare_inputs_labels_for_multimodal, input_ids", input_ids)
+        if isinstance(labels, torch.Tensor):
+            debug_tensor("Start prepare_inputs_labels_for_multimodal, labels", labels)
+        if isinstance(images, list):
+            for i, image in enumerate(images):
+                if isinstance(image, torch.Tensor):
+                    debug_tensor(f'images[{i}]', image)
+        vision_tower = self.get_vision_tower()
         vision_tower_aux_list = self.get_model().get_vision_tower_aux_list()
         if vision_tower_aux_list is None or images is None or input_ids.shape[1] == 1:
             return (
@@ -1352,10 +1354,15 @@ class CambrianMetaForCausalLM(ABC):
             cur_input_ids[cur_attention_mask]
             for cur_input_ids, cur_attention_mask in zip(input_ids, attention_mask)
         ]
+        tcm_logger.debug("Now, input_ids and labels filtered by attention_mask")
+        for j, input_id in enumerate(input_ids):
+            debug_tensor(f"input_ids[{j}]", input_id)
         labels = [
             cur_labels[cur_attention_mask]
             for cur_labels, cur_attention_mask in zip(labels, attention_mask)
         ]
+        for j, label in enumerate(labels):
+            debug_tensor(f"labels[{j}]", label)
 
         new_input_embeds = []
         new_labels = []
@@ -1603,6 +1610,7 @@ class CambrianMetaForCausalLM(ABC):
             device=position_ids.device,
         )
 
+        tcm_logger.debug("Padding embedding sequences in a batch...")
         for i, (cur_new_embed, cur_new_labels) in enumerate(
             zip(new_input_embeds, new_labels)
         ):
