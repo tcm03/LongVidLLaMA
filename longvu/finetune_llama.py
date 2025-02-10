@@ -90,6 +90,7 @@ tcm_logger.addHandler(file_handler)
 tcm_logger.propagate = False
 
 ##### DONE LOGGING CONFIGURATION ####
+from ..resource_logging import *
 
 @dataclass
 class ModelArguments:
