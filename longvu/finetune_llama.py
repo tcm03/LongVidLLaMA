@@ -68,6 +68,7 @@ os.makedirs(log_dir, exist_ok=True)
 timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 log_filename = os.path.join(log_dir, f"fine_tuning_{timestamp}.log")
 
+import logging
 # Create a logger
 tcm_logger = logging.getLogger("tcm_logger")
 tcm_logger.setLevel(logging.DEBUG)  # Capture all logs
