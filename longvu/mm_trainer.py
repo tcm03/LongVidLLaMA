@@ -522,9 +522,11 @@ class LLaVATrainer(Trainer):
         else:
             logits = outputs.logits
             loss_val = outputs.loss
-            debug_tensor("outputs.hidden_states", outputs.hidden_states)
+            if isinstance(outputs.hidden_states, torch.Tensor):
+                debug_tensor("outputs.hidden_states", outputs.hidden_states)
             tcm_logger.debug(f"outputs.hidden_states: {outputs.hidden_states}")
-            debug_tensor("outputs.attentions", outputs.attentions)
+            if isinstance(outputs.attentions, torch.Tensor):
+                debug_tensor("outputs.attentions", outputs.attentions)
             tcm_logger.debug(f"outputs.attentions: {outputs.attentions}")
             
         output_ids = logits.argmax(dim=-1)
