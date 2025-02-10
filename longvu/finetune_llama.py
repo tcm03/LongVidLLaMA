@@ -1121,9 +1121,9 @@ def train() -> None:
     with open('cambrianllama.txt', 'w', encoding='utf-8') as f:
         f.write(str(model))
 
-    # os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
+    os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
     # pyre-fixme[16]: `DataClass` has no attribute `fsdp_config`.
-    # training_args.fsdp_config["use_orig_params"] = True
+    training_args.fsdp_config["use_orig_params"] = True
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
 
     with open('environ.json', 'w', encoding = 'utf-8') as f:
@@ -1163,12 +1163,13 @@ def train() -> None:
 
     torch.cuda.memory._record_memory_history(max_entries=100000)
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
-    if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
-        # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
-        trainer.train(resume_from_checkpoint=True)
-    else:
-        trainer.train()
+#    if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
+#        # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
+#        trainer.train(resume_from_checkpoint=True)
+#    else:
+#        trainer.train()
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
+    trainer.train()
     trainer.evaluate()
     torch.cuda.memory._dump_snapshot(f"longvu_llama_{global_rank}.pkl")
     torch.cuda.memory._record_memory_history(enabled=None)
