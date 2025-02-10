@@ -434,7 +434,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                         return_dict=return_dict, # True
                         # final_vision_feature_size=final_vision_feature_size,
                     )
-
+        tcm_logger.debug(f"After forward pass: outputs={outputs}")
         with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> lm_head, logits"):
             hidden_states = outputs[0]
             # hidden_states: [torch.Size([1, 5361, 3072]), torch.float32, cuda:0]
@@ -470,7 +470,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
         if not return_dict:
             output = (logits,) + outputs[1:]
             return (loss,) + output if loss is not None else output
-
+        tcm_logger.debug(f"Before forward return: outputs={outputs}")
         return CausalLMOutputWithPast(
             loss=loss,
             logits=logits,
