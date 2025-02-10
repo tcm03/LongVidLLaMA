@@ -868,6 +868,8 @@ def train() -> None:
     local_rank = get_local_rank()
 
     torch.distributed.barrier()
+    
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
     training_args.output_dir = model_args.output_model_filename
