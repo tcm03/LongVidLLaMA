@@ -36,6 +36,8 @@ import logging
 
 from resource_logging import *
 
+tcm_logger = logging.getLogger("tcm_logger")
+
 IS_XLA_AVAILABLE = False
 
 
@@ -800,12 +802,12 @@ class CambrianMetaForCausalLM(ABC):
         image_aux_attention_masks_list=None,
         image_sizes=None,
     ):
-        if isinstance(input_ids, torch.Tensor):
-            debug_tensor("input_ids", input_ids)
-        if isinstance(images, list):
-            for i, image in enumerate(images):
-                if isinstance(image, torch.Tensor):
-                    debug_tensor(f'images[{i}]', image)
+        # if isinstance(input_ids, torch.Tensor):
+        #     debug_tensor("input_ids", input_ids)
+        # if isinstance(images, list):
+        #     for i, image in enumerate(images):
+        #         if isinstance(image, torch.Tensor):
+        #             debug_tensor(f'images[{i}]', image)
         # vision_tower = self.get_vision_tower()
         vision_tower_aux_list = self.get_model().get_vision_tower_aux_list()
         if vision_tower_aux_list is None or images is None or input_ids.shape[1] == 1:
@@ -903,7 +905,7 @@ class CambrianMetaForCausalLM(ABC):
                 with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> SVA -> mm_projector_aux_0/1"):
                     for aux_i in range(len(vision_tower_aux_list)):
                         image_aux_features = image_aux_features_list[aux_i]
-                        debug_tensor(f'image_aux_features_list[{aux_i}]', image_aux_features)
+                        # debug_tensor(f'image_aux_features_list[{aux_i}]', image_aux_features)
                         image_aux_features = getattr(
                             self.get_model(), "mm_projector_aux_{}".format(aux_i)
                         )(image_aux_features).to(dtype)
@@ -1050,8 +1052,8 @@ class CambrianMetaForCausalLM(ABC):
             else:
                 final_image_features_list = image_aux_features_list
 
-        for i, final_image_feature in enumerate(final_image_features_list):
-            debug_tensor(f"final_image_features_list[{i}]:", final_image_feature)
+        # for i, final_image_feature in enumerate(final_image_features_list):
+        #     debug_tensor(f"final_image_features_list[{i}]:", final_image_feature)
         image_features = torch.cat(final_image_features_list, -1)
         image_features = self.get_model().mm_projector(image_features).to(dtype)
 
@@ -1360,7 +1362,9 @@ class CambrianMetaForCausalLM(ABC):
         image_token_indices_batch = []
         cur_image_idx = 0
         with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> Embedding+Cross-modal+STC"):
+            tcm_logger.debug(f"len(input_ids): {len(input_ids)}")
             for batch_idx, cur_input_ids in enumerate(input_ids):
+                debug_tensor("\nbatch_idx={batch_idx}, cur_input_ids", cur_input_ids)
                 num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
                 if num_images == 0:
                     cur_image_features = image_features[cur_image_idx]
@@ -1383,6 +1387,8 @@ class CambrianMetaForCausalLM(ABC):
                 )
                 cur_input_ids_noim = []
                 cur_labels = labels[batch_idx]
+                if isinstance(cur_labels, torch.Tensor):
+                    debug_tensor("cur_labels", cur_labels)
                 cur_labels_noim = []
                 for i in range(len(image_token_indices) - 1):
                     cur_input_ids_noim.append(
@@ -1397,6 +1403,7 @@ class CambrianMetaForCausalLM(ABC):
                 cur_input_embeds = self.get_model().embed_tokens(
                     torch.cat(cur_input_ids_noim)
                 )
+                debug_tensor("cur_input_embeds", cur_input_embeds)
                 cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
                 cur_new_input_embeds = []
                 cur_new_labels = []
@@ -1534,26 +1541,32 @@ class CambrianMetaForCausalLM(ABC):
 
                     image_features[cur_image_idx] = new_visual_emb_frames[:max_visual_len]
 
+                tcm_logger.debug("Interleaving text and non-text embeddings...")
                 for i in range(num_images + 1):
                     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
+                    debug_tensor(f"cur_input_embeds_no_im[{i}]", cur_input_embeds_no_im[i])
                     cur_new_labels.append(cur_labels_noim[i])
+                    debug_tensor(f"cur_labels_noim[{i}]", cur_labels_noim[i])
                     if i < num_images:
                         cur_image_features = image_features[cur_image_idx]
+                        debug_tensor("cur_image_features", cur_image_features)
                         cur_image_idx += 1
                         cur_new_input_embeds.append(cur_image_features)
-                        cur_new_labels.append(
-                            torch.full(
-                                (cur_image_features.shape[0],),
-                                IGNORE_INDEX,
-                                device=cur_labels.device,
-                                dtype=cur_labels.dtype,
-                            )
-                        )
+                        label_tensor = torch.full(
+                                            (cur_image_features.shape[0],),
+                                            IGNORE_INDEX,
+                                            device=cur_labels.device,
+                                            dtype=cur_labels.dtype,
+                                        )
+                        debug_tensor("label_tensor", label_tensor)
+                        cur_new_labels.append(label_tensor)
 
                 cur_new_input_embeds = [x.to(self.device) for x in cur_new_input_embeds]
 
                 cur_new_input_embeds = torch.cat(cur_new_input_embeds)
+                debug_tensor("Concat cur_new_input_embeds", cur_new_input_embeds)
                 cur_new_labels = torch.cat(cur_new_labels)
+                debug_tensor("Concat cur_new_labels", cur_new_labels)
 
                 new_input_embeds.append(cur_new_input_embeds)
                 new_labels.append(cur_new_labels)

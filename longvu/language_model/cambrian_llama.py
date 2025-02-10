@@ -294,8 +294,8 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
     ) -> Union[Tuple, CausalLMOutputWithPast]:
 
         final_vision_feature_size = None
-        if isinstance(images, list) and isinstance(images[0], torch.Tensor):
-            debug_tensor('Vision tensor: images[0]', images[0])
+        # if isinstance(images, list) and isinstance(images[0], torch.Tensor):
+        #     debug_tensor('Vision tensor: images[0]', images[0])
 
         if inputs_embeds is None:
             with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> prepare_inputs_labels_for_multimodal"):
@@ -326,7 +326,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                     for i, input_embed in enumerate(inputs_embeds):
                         if isinstance(input_embed, torch.Tensor):
                             debug_tensor(f'inputs_embeds[{i}]', input_embed)
-                tcm_logger.debug(f'inputs_embeds last tokens: {inputs_embeds[..., -100:]}')
+                # tcm_logger.debug(f'inputs_embeds last tokens: {inputs_embeds[..., -100:]}')
         
         if IS_XLA_AVAILABLE:
             # Very Important for TorchXLA

@@ -820,7 +820,7 @@ class DataCollatorForSupervisedDataset(object):
         if isinstance(batch['images'], list):
             for i, img_tensor in enumerate(batch['images']):
                 if isinstance(img_tensor, torch.Tensor):
-                    debug_tensor(f"batch['images'][{i}]", img_tensor)
+                    debug_tensor(f"DataCollator: batch['images'][{i}]", img_tensor)
         return batch
 
 

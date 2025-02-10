@@ -82,16 +82,16 @@ def measure_resource_usage(prefix: str = ""):
                         continue  # Skip problematic frames
 
                 tcm_logger.debug(f'Section name: {prefix}')
-                tcm_logger.debug(f'File: {caller_filename}, Line: {caller_lineno}')
-                tcm_logger.debug(f'Time: {end_time - start_time:.2f} seconds')
-                tcm_logger.debug(f'Device: {device}')
-                tcm_logger.debug(f'Allocated before: {start_allocated/1e6:.2f} MB')
-                tcm_logger.debug(f'Allocated after:  {end_allocated/1e6:.2f} MB')
-                tcm_logger.debug(f'Net allocated change:  {(end_allocated - start_allocated)/1e6:.2f} MB')
-                tcm_logger.debug(f'Reserved before:  {start_reserved/1e6:.2f} MB')
-                tcm_logger.debug(f'Reserved after:   {end_reserved/1e6:.2f} MB')
-                tcm_logger.debug(f'Net reserved change:   {(end_reserved - start_reserved)/1e6:.2f} MB')
-                tcm_logger.debug(f'Peak allocated:         {peak_allocated/1e6:.2f} MB')
+                # tcm_logger.debug(f'File: {caller_filename}, Line: {caller_lineno}')
+                # tcm_logger.debug(f'Time: {end_time - start_time:.2f} seconds')
+                # tcm_logger.debug(f'Device: {device}')
+                # tcm_logger.debug(f'Allocated before: {start_allocated/1e6:.2f} MB')
+                # tcm_logger.debug(f'Allocated after:  {end_allocated/1e6:.2f} MB')
+                # tcm_logger.debug(f'Net allocated change:  {(end_allocated - start_allocated)/1e6:.2f} MB')
+                # tcm_logger.debug(f'Reserved before:  {start_reserved/1e6:.2f} MB')
+                # tcm_logger.debug(f'Reserved after:   {end_reserved/1e6:.2f} MB')
+                # tcm_logger.debug(f'Net reserved change:   {(end_reserved - start_reserved)/1e6:.2f} MB')
+                # tcm_logger.debug(f'Peak allocated:         {peak_allocated/1e6:.2f} MB')
 
                 return result
             except Exception as e:
@@ -142,16 +142,16 @@ class MeasureResourceUsage:
                     continue  # Skip problematic frames
 
             # Log memory and time usage with caller info
-            tcm_logger.debug(f'Section name: {self.prefix}')
-            tcm_logger.debug(f'File: {caller_filename}, Line: {caller_lineno}')
-            tcm_logger.debug(f'Time: {end_time - self.start_time:.2f} seconds')
-            tcm_logger.debug(f'Device: {self.device}')
-            tcm_logger.debug(f'Allocated before block: {self.start_allocated/1e6:.2f} MB')
-            tcm_logger.debug(f'Allocated after block:  {end_allocated/1e6:.2f} MB')
-            tcm_logger.debug(f'Net allocated change:  {(end_allocated - self.start_allocated)/1e6:.2f} MB')
-            tcm_logger.debug(f'Reserved before block:  {self.start_reserved/1e6:.2f} MB')
-            tcm_logger.debug(f'Reserved after block:   {end_reserved/1e6:.2f} MB')
-            tcm_logger.debug(f'Net reserved change:  {(end_reserved - self.start_reserved)/1e6:.2f} MB')
-            tcm_logger.debug(f'Peak allocated:         {peak_allocated/1e6:.2f} MB')
+            # tcm_logger.debug(f'Section name: {self.prefix}')
+            # tcm_logger.debug(f'File: {caller_filename}, Line: {caller_lineno}')
+            # tcm_logger.debug(f'Time: {end_time - self.start_time:.2f} seconds')
+            # tcm_logger.debug(f'Device: {self.device}')
+            # tcm_logger.debug(f'Allocated before block: {self.start_allocated/1e6:.2f} MB')
+            # tcm_logger.debug(f'Allocated after block:  {end_allocated/1e6:.2f} MB')
+            # tcm_logger.debug(f'Net allocated change:  {(end_allocated - self.start_allocated)/1e6:.2f} MB')
+            # tcm_logger.debug(f'Reserved before block:  {self.start_reserved/1e6:.2f} MB')
+            # tcm_logger.debug(f'Reserved after block:   {end_reserved/1e6:.2f} MB')
+            # tcm_logger.debug(f'Net reserved change:  {(end_reserved - self.start_reserved)/1e6:.2f} MB')
+            # tcm_logger.debug(f'Peak allocated:         {peak_allocated/1e6:.2f} MB')
         except Exception as e:
             logging.error(f"Error in MeasureResourceUsage: {e}")
