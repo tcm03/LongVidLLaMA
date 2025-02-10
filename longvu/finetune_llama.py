@@ -696,10 +696,21 @@ class DataCollatorForSupervisedDataset(object):
         image_aux_token_len_list = self.image_aux_token_len_list
         image_position = self.image_position
 
-        input_ids, labels = tuple(
-            [instance[key] for instance in instances] for key in ("input_ids", "labels")
-        )
+        # input_ids, labels = tuple(
+        #     [instance[key] for instance in instances] for key in ("input_ids", "labels")
+        # )
+        input_ids = []
+        for i, instance in enumerate(instances):
+            if isinstance(instance["input_ids"], torch.Tensor):
+                debug_tensor(f"instances[{i}]['input_ids']", instance["input_ids"])
+            input_ids.append(instance["input_ids"])
+        labels = []
+        for i, instance in enumerate(instances):
+            if isinstance(instance["labels"], torch.Tensor):
+                debug_tensor(f"instances[{i}]['labels']", instance["labels"])
+            labels.append(instance["labels"])
         max_length = self.tokenizer.model_max_length
+        tcm_logger.debug(f"max_length: {max_length}")
 
         padding_side = self.tokenizer.padding_side
 
@@ -730,6 +741,7 @@ class DataCollatorForSupervisedDataset(object):
                 for t in labels
             ]
         else:
+            tcm_logger.debug(f"self.tokenizer.pad_token_id: {self.tokenizer.pad_token_id}")
             input_ids = [
                 (
                     t[:max_length]

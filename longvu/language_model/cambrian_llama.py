@@ -437,7 +437,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
 
         with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> lm_head, logits"):
             hidden_states = outputs[0]
-            debug_tensor("hidden_states", hidden_states)
+            # hidden_states: [torch.Size([1, 5361, 3072]), torch.float32, cuda:0]
             if self.config.pretraining_tp > 1:
                 lm_head_slices = self.lm_head.weight.split(
                     self.vocab_size // self.config.pretraining_tp, dim=0
@@ -450,15 +450,15 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             else:
                 logits = self.lm_head(hidden_states)
             logits = logits.float()
-            debug_tensor("logits", logits)
+            # logits: [torch.Size([1, 5361, 128256]), torch.float32, cuda:0]
 
             loss = None
             if labels is not None:
                 # Shift so that tokens < n predict n
                 shift_logits = logits[..., :-1, :].contiguous()
-                debug_tensor("shift_logits", shift_logits)
+                # shift_logits: [torch.Size([1, 5360, 128256]), torch.float32, cuda:0]
                 shift_labels = labels[..., 1:].contiguous()
-                debug_tensor("shift_labels", shift_labels)
+                # shift_labels: [torch.Size([1, 5360]), torch.int64, cuda:0]
                 # Flatten the tokens
                 loss_fct = CrossEntropyLoss()
                 shift_logits = shift_logits.view(-1, self.config.vocab_size)
@@ -466,7 +466,6 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 # Enable model parallelism
                 shift_labels = shift_labels.to(shift_logits.device)
                 loss = loss_fct(shift_logits, shift_labels)
-                tcm_logger.debug(f"Cross-Entropy Loss: {loss.item()}")
 
         if not return_dict:
             output = (logits,) + outputs[1:]
