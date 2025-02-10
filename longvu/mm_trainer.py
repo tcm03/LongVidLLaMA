@@ -521,7 +521,13 @@ class LLaVATrainer(Trainer):
         else:
             logits = outputs.logits
             loss_val = outputs.loss
+            debug_tensor("outputs.hidden_states", outputs.hidden_states)
+            tcm_logger.debug(f"outputs.hidden_states: {outputs.hidden_states}")
+            debug_tensor("outputs.attentions", outputs.attentions)
+            tcm_logger.debug(f"outputs.attentions: {outputs.attentions}")
+            
         output_ids = logits.argmax(dim=-1)
+        debug_tensor("output_ids", output_ids)
         assert len(output_ids) == len(inputs['input_ids']), 'Same batch size required'
         decoded_outputs = self.tokenizer.batch_decode(output_ids[..., :min(100, output_ids.shape[-1])], skip_special_tokens=True)
         tcm_logger.debug(f'loss={loss_val}')
