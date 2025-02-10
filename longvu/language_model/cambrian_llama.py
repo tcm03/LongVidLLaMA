@@ -326,7 +326,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                     for i, input_embed in enumerate(inputs_embeds):
                         if isinstance(input_embed, torch.Tensor):
                             debug_tensor(f'inputs_embeds[{i}]', input_embed)
-                tcm_logger.debug('inputs_embeds last tokens', inputs_embeds[..., -100:])
+                tcm_logger.debug(f'inputs_embeds last tokens: {inputs_embeds[..., -100:]}')
         
         if IS_XLA_AVAILABLE:
             # Very Important for TorchXLA
