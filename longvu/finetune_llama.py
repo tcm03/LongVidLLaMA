@@ -1175,11 +1175,11 @@ def train() -> None:
     torch.cuda.memory._record_memory_history(enabled=None)
     trainer.save_state()
 
-    safe_save_model_for_hf_trainer(
-        trainer=trainer,
-        # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
-        output_dir=model_args.output_model_filename,
-    )
+#    safe_save_model_for_hf_trainer(
+#        trainer=trainer,
+#        # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
+#        output_dir=model_args.output_model_filename,
+#    )
 
 
 if __name__ == "__main__":
