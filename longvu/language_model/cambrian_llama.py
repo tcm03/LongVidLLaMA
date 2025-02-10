@@ -344,17 +344,17 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             if output_attentions is not None
             # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no attribute `config`.
             else self.config.output_attentions
-        )
+        ) # False
         tcm_logger.debug(f"output_attentions: {output_attentions}")
         output_hidden_states = (
             output_hidden_states
             if output_hidden_states is not None
             else self.config.output_hidden_states
-        )
+        ) # False
         tcm_logger.debug(f"output_hidden_states: {output_hidden_states}")
         return_dict = (
             return_dict if return_dict is not None else self.config.use_return_dict
-        )
+        ) # True
         tcm_logger.debug(f"return_dict: {return_dict}")
         
         
@@ -390,7 +390,6 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 if hasattr(self, "vision_tower_aux_feature_list"):
                     # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
                     # pyre-fixme[29]: `CambrianLlamaModel` is not a function.
-                    tcm_logger.debug("@tcm: Here 1")
                     outputs = self.model(
                         input_ids=input_ids,
                         attention_mask=attention_mask,
@@ -437,7 +436,6 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                         ),
                     )
                 else:
-                    tcm_logger.debug("@tcm: Here 2")
                     # pyre-fixme[29]: `CambrianLlamaModel` is not a function.
                     outputs = self.model(
                         input_ids=input_ids,
@@ -446,9 +444,9 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                         past_key_values=past_key_values,
                         inputs_embeds=inputs_embeds,
                         use_cache=use_cache,
-                        output_attentions=output_attentions,
-                        output_hidden_states=output_hidden_states,
-                        return_dict=return_dict,
+                        output_attentions=output_attentions, # False
+                        output_hidden_states=output_hidden_states, # False
+                        return_dict=return_dict, # True
                         # final_vision_feature_size=final_vision_feature_size,
                     )
 
