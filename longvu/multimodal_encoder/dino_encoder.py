@@ -115,7 +115,6 @@ class DinoVisionTower(BaseVisionTower):
     def _forward(self, images):
         # logger.warning(f"images shape: {images.shape}")
         with torch.set_grad_enabled(self.unfreeze_mm_vision_tower):
-            logging.info(f'images.shape: {images.shape}')
             image_forward_outs = self.vision_tower.forward(
                 images.to(device=self.device, dtype=self.dtype)
             )

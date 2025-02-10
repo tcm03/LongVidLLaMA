@@ -903,7 +903,7 @@ class CambrianMetaForCausalLM(ABC):
                 with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> SVA -> mm_projector_aux_0/1"):
                     for aux_i in range(len(vision_tower_aux_list)):
                         image_aux_features = image_aux_features_list[aux_i]
-                        logging.info(f'aux_i={aux_i}, image_aux_features.dtype = {image_aux_features.dtype}')
+                        debug_tensor(f'image_aux_features_list[{aux_i}]', image_aux_features)
                         image_aux_features = getattr(
                             self.get_model(), "mm_projector_aux_{}".format(aux_i)
                         )(image_aux_features).to(dtype)

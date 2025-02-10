@@ -57,15 +57,38 @@ from transformers import TrainerCallback
 import pandas as pd
 
 from transformers.integrations import TensorBoardCallback
-
-import logging
-
 TENSORBOARD_LOG_DIR_NAME: str = "tensorboard_logs"
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(filename)s:%(lineno)d - %(funcName)s - %(levelname)s - %(message)s"
+##### LOGGING CONFIGURATION ####
+
+# Ensure logs directory exists
+log_dir = "runtime_logs"
+os.makedirs(log_dir, exist_ok=True)
+# Generate a unique log filename using timestamp
+timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+log_filename = os.path.join(log_dir, f"fine_tuning_{timestamp}.log")
+
+# Create a logger
+tcm_logger = logging.getLogger("tcm_logger")
+tcm_logger.setLevel(logging.DEBUG)  # Capture all logs
+
+# Create a file handler for logging
+file_handler = logging.FileHandler(log_filename, mode="w")
+file_handler.setLevel(logging.DEBUG)  # Capture all log levels
+
+# Define log format
+formatter = logging.Formatter(
+    "%(asctime)s - %(filename)s:%(lineno)d - %(funcName)s - %(levelname)s - %(message)s"
 )
+file_handler.setFormatter(formatter)
+
+# Add the file handler to the logger
+tcm_logger.addHandler(file_handler)
+
+# Prevent log propagation to the root logger
+tcm_logger.propagate = False
+
+##### DONE LOGGING CONFIGURATION ####
 
 @dataclass
 class ModelArguments:
@@ -795,7 +818,7 @@ class DataCollatorForSupervisedDataset(object):
         if isinstance(batch['images'], list):
             for i, img_tensor in enumerate(batch['images']):
                 if isinstance(img_tensor, torch.Tensor):
-                    logging.info(f'batch["images"][{i}].dtype: {img_tensor.dtype}')
+                    debug_tensor(f"batch['images'][{i}]", img_tensor)
         return batch
 
 
@@ -1077,9 +1100,9 @@ def train() -> None:
         p.numel() for p in model.get_model().parameters() if p.requires_grad
     )
     head_params = sum(p.numel() for p in model.lm_head.parameters())
-    logging.info(f'Total params: {total_params}')
-    logging.info(f'Trainable params: {trainable_params}')
-    logging.info(f'LM head params: {head_params}')
+    tcm_logger.info(f'Total params: {total_params}')
+    tcm_logger.info(f'Trainable params: {trainable_params}')
+    tcm_logger.info(f'LM head params: {head_params}')
 
     if training_args.bf16:
         model.to(torch.bfloat16)

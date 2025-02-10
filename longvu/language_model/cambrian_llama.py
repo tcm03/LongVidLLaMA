@@ -48,7 +48,7 @@ from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
 IS_XLA_AVAILABLE = False
 
 logger = lgging.get_logger(__name__)
-
+tcm_logger = logging.getLogger("tcm_logger")
 
 class CambrianConfig(LlamaConfig):
     model_type = "cambrian_llama"
@@ -185,11 +185,11 @@ class CambrianLlamaModel(CambrianMetaModel, LlamaModel):
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
         if isinstance(hidden_states, torch.Tensor):
-            logging.info(f'hidden_states.dtype: {hidden_states.dtype}')
+            debug_tensor("hidden_states", hidden_states)
         elif isinstance(hidden_states, list):
             for i, hidden_state in enumerate(hidden_states):
                 if isinstance(hidden_state, torch.Tensor):
-                    logging.info(f'hidden_states[{i}].dtype: {hidden_state.dtype}')
+                    debug_tensor(f'hidden_states[{i}]', hidden_state)
         # pyre-fixme[16]: `CambrianLlamaModel` has no attribute `layers`.
         for i, decoder_layer in enumerate(self.layers):
             if output_hidden_states:
@@ -343,14 +343,17 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             # pyre-fixme[16]: `CambrianLlamaForCausalLM` has no attribute `config`.
             else self.config.output_attentions
         )
+        tcm_logger.debug(f"output_attentions: {output_attentions}")
         output_hidden_states = (
             output_hidden_states
             if output_hidden_states is not None
             else self.config.output_hidden_states
         )
+        tcm_logger.debug(f"output_hidden_states: {output_hidden_states}")
         return_dict = (
             return_dict if return_dict is not None else self.config.use_return_dict
         )
+        tcm_logger.debug(f"return_dict: {return_dict}")
         
         
         # training
@@ -385,6 +388,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 if hasattr(self, "vision_tower_aux_feature_list"):
                     # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
                     # pyre-fixme[29]: `CambrianLlamaModel` is not a function.
+                    tcm_logger.debug("@tcm: Here 1")
                     outputs = self.model(
                         input_ids=input_ids,
                         attention_mask=attention_mask,
@@ -431,6 +435,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                         ),
                     )
                 else:
+                    tcm_logger.debug("@tcm: Here 2")
                     # pyre-fixme[29]: `CambrianLlamaModel` is not a function.
                     outputs = self.model(
                         input_ids=input_ids,
