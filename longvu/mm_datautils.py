@@ -724,7 +724,8 @@ def preprocess_llama3(
 ) -> Dict:
     # roles = {"human": "<|start_header_id|>user<|end_header_id|>", "gpt": "<|start_header_id|>assistant<|end_header_id|>"}
     roles = {"human": "user", "gpt": "assistant"}
-
+    tcm_logger.debug(f"In preprocess_llama3: sources: {sources}")
+    tcm_logger.debug(f"In preprocess_llama3: has_image: {has_image}")
     # Add image tokens to tokenizer as a special tokens
     # Use a deepcopy of tokenizer so that we don't modify on the tokenizer
     tokenizer = copy.deepcopy(tokenizer)
