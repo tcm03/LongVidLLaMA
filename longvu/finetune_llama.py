@@ -66,7 +66,7 @@ log_dir = "runtime_logs"
 os.makedirs(log_dir, exist_ok=True)
 # Generate a unique log filename using timestamp
 timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-log_filename = os.path.join(log_dir, f"fine_tuning_{timestamp}.log")
+log_filename = os.path.join(log_dir, f"run_{timestamp}.log")
 
 import logging
 # Create a logger
