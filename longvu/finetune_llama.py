@@ -701,21 +701,24 @@ class DataCollatorForSupervisedDataset(object):
         # )
         input_ids = []
         for i, instance in enumerate(instances):
-            if isinstance(instance["input_ids"], torch.Tensor):
-                debug_tensor(f"instances[{i}]['input_ids']", instance["input_ids"])
+            # if isinstance(instance["input_ids"], torch.Tensor):
+            #     debug_tensor(f"instances[{i}]['input_ids']", instance["input_ids"])
+            tcm_logger.debug(f"instances[{i}]['input_ids']: {instance['input_ids']}")
             input_ids.append(instance["input_ids"])
+            # instances[0]['input_ids']: [torch.Size([154]), torch.int64, cpu]
         labels = []
         for i, instance in enumerate(instances):
-            if isinstance(instance["labels"], torch.Tensor):
-                debug_tensor(f"instances[{i}]['labels']", instance["labels"])
+            # if isinstance(instance["labels"], torch.Tensor):
+            #     debug_tensor(f"instances[{i}]['labels']", instance["labels"])
+            tcm_logger.debug(f"instances[{i}]['labels']: {instance['labels']}")
             labels.append(instance["labels"])
-        max_length = self.tokenizer.model_max_length
-        tcm_logger.debug(f"max_length: {max_length}")
+            # instances[0]['labels']: [torch.Size([154]), torch.int64, cpu]
+        max_length = self.tokenizer.model_max_length # 8192
 
         padding_side = self.tokenizer.padding_side
 
         # print_rank0("Pad token id is", self.tokenizer.pad_token_id)
-
+        # self.tokenizer.pad_token_id: 128002
         if padding_side == "left":
             input_ids = [
                 (
@@ -741,7 +744,7 @@ class DataCollatorForSupervisedDataset(object):
                 for t in labels
             ]
         else:
-            tcm_logger.debug(f"self.tokenizer.pad_token_id: {self.tokenizer.pad_token_id}")
+            # self.tokenizer.pad_token_id: 128002
             input_ids = [
                 (
                     t[:max_length]
@@ -772,17 +775,20 @@ class DataCollatorForSupervisedDataset(object):
         # insert dummy image
         for i in range(len(input_ids)):
             if (input_ids[i] == IMAGE_TOKEN_INDEX).sum() == 0:
+                tcm_logger.debug(f"image_position: {image_position}")
                 cur_input_ids_tmp = input_ids[i].clone()
                 cur_input_ids_tmp[image_position + 1 :] = input_ids[
                     i, image_position:-1
                 ]
                 cur_input_ids_tmp[image_position] = IMAGE_TOKEN_INDEX
                 input_ids[i] = cur_input_ids_tmp
+                tcm_logger.debug(f"cur_input_ids_tmp[:image_position+1]: {cur_input_ids_tmp[:image_position+1]}")
 
                 cur_labels_tmp = labels[i].clone()
                 cur_labels_tmp[image_position + 1 :] = labels[i, image_position:-1]
                 cur_labels_tmp[image_position] = IGNORE_INDEX
                 labels[i] = cur_labels_tmp
+                tcm_logger.debug(f"cur_labels_tmp[:image_position+1]: {cur_labels_tmp[:image_position+1]}")
 
                 cur_attention_mask_tmp = attention_mask[i].clone()
                 cur_attention_mask_tmp[image_position + 1 :] = attention_mask[
@@ -790,6 +796,7 @@ class DataCollatorForSupervisedDataset(object):
                 ]
                 cur_attention_mask_tmp[image_position] = False
                 attention_mask[i] = cur_attention_mask_tmp
+                tcm_logger.debug(f"cur_attention_mask_tmp[:image_position+1]: {cur_attention_mask_tmp[:image_position+1]}")
         image_sizes = [instance["image_size"] for instance in instances]
         (
             new_input_ids,
