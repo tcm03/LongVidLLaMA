@@ -802,14 +802,10 @@ class CambrianMetaForCausalLM(ABC):
         image_aux_attention_masks_list=None,
         image_sizes=None,
     ):
-        if isinstance(input_ids, torch.Tensor):
-            debug_tensor("Start prepare_inputs_labels_for_multimodal, input_ids", input_ids)
-        if isinstance(labels, torch.Tensor):
-            debug_tensor("Start prepare_inputs_labels_for_multimodal, labels", labels)
-        if isinstance(images, list):
-            for i, image in enumerate(images):
-                if isinstance(image, torch.Tensor):
-                    debug_tensor(f'images[{i}]', image)
+        # input_ids: [torch.Size([1, 8192]), torch.int64, cuda:0]
+        # labels: [torch.Size([1, 8192]), torch.int64, cuda:0]
+        # images[0]: [torch.Size([1, # frames, 3, 384, 384]), torch.float32, cuda:0]
+        # images[1]: [torch.Size([1, # frames, 3, 378, 378]), torch.float32, cuda:0]
         
         # vision_tower = self.get_vision_tower()
         vision_tower_aux_list = self.get_model().get_vision_tower_aux_list()
@@ -847,7 +843,7 @@ class CambrianMetaForCausalLM(ABC):
                 image_aux_features_dino = self.encode_images(
                     new_image_aux_list, encode_type="dino"
                 )
-                debug_tensor("image_aux_features_dino", image_aux_features_dino)
+                # image_aux_features_dino: [torch.Size([# frames, 576, 1536]), torch.float32, cuda:1]
 
             with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> select_frame"):
                 (
@@ -868,7 +864,7 @@ class CambrianMetaForCausalLM(ABC):
                 image_aux_features_siglip = self.encode_images(
                     new_image_aux_list, encode_type="siglip"
                 )
-                debug_tensor("image_aux_features_siglip", image_aux_features_siglip)
+                # image_aux_features_siglip: [torch.Size([# frames, 576, 1152]), torch.bfloat16, cuda:1]
             image_aux_features_list = [
                 image_aux_features_siglip,
                 image_aux_features_dino,
@@ -1355,15 +1351,13 @@ class CambrianMetaForCausalLM(ABC):
             cur_input_ids[cur_attention_mask]
             for cur_input_ids, cur_attention_mask in zip(input_ids, attention_mask)
         ]
-        tcm_logger.debug("Now, input_ids and labels filtered by attention_mask")
-        for j, input_id in enumerate(input_ids):
-            debug_tensor(f"input_ids[{j}]", input_id)
+        # Now, input_ids and labels filtered by attention_mask
+        # input_ids[0]: [torch.Size([238]), torch.int64, cuda:1]
         labels = [
             cur_labels[cur_attention_mask]
             for cur_labels, cur_attention_mask in zip(labels, attention_mask)
         ]
-        for j, label in enumerate(labels):
-            debug_tensor(f"labels[{j}]", label)
+        # labels[0]: [torch.Size([238]), torch.int64, cuda:1]
 
         new_input_embeds = []
         new_labels = []
@@ -1372,7 +1366,8 @@ class CambrianMetaForCausalLM(ABC):
         with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> Embedding+Cross-modal+STC"):
             tcm_logger.debug(f"len(input_ids): {len(input_ids)}")
             for batch_idx, cur_input_ids in enumerate(input_ids):
-                debug_tensor(f"batch_idx={batch_idx}, cur_input_ids", cur_input_ids)
+                # cur_input_ids: [torch.Size([238]), torch.int64, cuda:1]
+                tcm_logger.debug(f"batch_idx={batch_idx}, cur_input_ids={cur_input_ids}")
                 num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
                 if num_images == 0:
                     cur_image_features = image_features[cur_image_idx]
@@ -1394,9 +1389,9 @@ class CambrianMetaForCausalLM(ABC):
                     torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist()[0]
                 )
                 cur_input_ids_noim = []
+                # cur_labels: [torch.Size([238]), torch.int64, cuda:1]
                 cur_labels = labels[batch_idx]
-                if isinstance(cur_labels, torch.Tensor):
-                    debug_tensor("cur_labels", cur_labels)
+                tcm_logger.debug(f"cur_labels={cur_labels}")
                 cur_labels_noim = []
                 for i in range(len(image_token_indices) - 1):
                     cur_input_ids_noim.append(
@@ -1408,10 +1403,10 @@ class CambrianMetaForCausalLM(ABC):
                         cur_labels[image_token_indices[i] + 1 : image_token_indices[i + 1]]
                     )
                 split_sizes = [x.shape[0] for x in cur_labels_noim]
+                # cur_input_embeds: [torch.Size([237, 3072]), torch.bfloat16, cuda:1]
                 cur_input_embeds = self.get_model().embed_tokens(
                     torch.cat(cur_input_ids_noim)
                 )
-                debug_tensor("cur_input_embeds", cur_input_embeds)
                 cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
                 cur_new_input_embeds = []
                 cur_new_labels = []
@@ -1549,15 +1544,18 @@ class CambrianMetaForCausalLM(ABC):
 
                     image_features[cur_image_idx] = new_visual_emb_frames[:max_visual_len]
 
-                tcm_logger.debug("Interleaving text and non-text embeddings...")
+                # Interleaving text and non-text embeddings...
                 for i in range(num_images + 1):
                     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                    debug_tensor(f"cur_input_embeds_no_im[{i}]", cur_input_embeds_no_im[i])
+                    # cur_input_embeds_no_im[0]: [torch.Size([16, 3072]), torch.bfloat16, cuda:1]
+                    # cur_input_embeds_no_im[1]: [torch.Size([221, 3072]), torch.bfloat16, cuda:1]
                     cur_new_labels.append(cur_labels_noim[i])
-                    debug_tensor(f"cur_labels_noim[{i}]", cur_labels_noim[i])
+                    tcm_logger.debug(f"cur_labels_noim[{i}]={cur_labels_noim[i]}")
+                    # cur_labels_noim[0]: [torch.Size([16]), torch.int64, cuda:1]
+                    # cur_labels_noim[1]: [torch.Size([221]), torch.int64, cuda:1]
                     if i < num_images:
                         cur_image_features = image_features[cur_image_idx]
-                        debug_tensor("cur_image_features", cur_image_features)
+                        # cur_image_features: [torch.Size([5124, 3072]), torch.float32, cuda:1]
                         cur_image_idx += 1
                         cur_new_input_embeds.append(cur_image_features)
                         label_tensor = torch.full(
@@ -1566,15 +1564,15 @@ class CambrianMetaForCausalLM(ABC):
                                             device=cur_labels.device,
                                             dtype=cur_labels.dtype,
                                         )
-                        debug_tensor("label_tensor", label_tensor)
+                        # label_tensor: [torch.Size([5124]), torch.int64, cuda:1]
                         cur_new_labels.append(label_tensor)
 
                 cur_new_input_embeds = [x.to(self.device) for x in cur_new_input_embeds]
 
                 cur_new_input_embeds = torch.cat(cur_new_input_embeds)
-                debug_tensor("Concat cur_new_input_embeds", cur_new_input_embeds)
+                # cur_new_input_embeds: [torch.Size([5361, 3072]), torch.float32, cuda:1]
                 cur_new_labels = torch.cat(cur_new_labels)
-                debug_tensor("Concat cur_new_labels", cur_new_labels)
+                # cur_new_labels: [torch.Size([5361]), torch.int64, cuda:1]
 
                 new_input_embeds.append(cur_new_input_embeds)
                 new_labels.append(cur_new_labels)
@@ -1611,7 +1609,7 @@ class CambrianMetaForCausalLM(ABC):
             device=position_ids.device,
         )
 
-        tcm_logger.debug("Padding embedding sequences in a batch...")
+        # Padding embedding sequences in a batch...
         for i, (cur_new_embed, cur_new_labels) in enumerate(
             zip(new_input_embeds, new_labels)
         ):

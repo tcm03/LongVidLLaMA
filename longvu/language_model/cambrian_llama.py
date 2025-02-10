@@ -182,16 +182,11 @@ class CambrianLlamaModel(CambrianMetaModel, LlamaModel):
 
         # embed positions
         hidden_states = inputs_embeds
+        # hidden_states: [torch.Size([1, 5361, 3072]), torch.float32, cuda:1]
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
-        if isinstance(hidden_states, torch.Tensor):
-            debug_tensor("hidden_states", hidden_states)
-        elif isinstance(hidden_states, list):
-            for i, hidden_state in enumerate(hidden_states):
-                if isinstance(hidden_state, torch.Tensor):
-                    debug_tensor(f'hidden_states[{i}]', hidden_state)
         # pyre-fixme[16]: `CambrianLlamaModel` has no attribute `layers`.
         for i, decoder_layer in enumerate(self.layers):
             if output_hidden_states:
@@ -318,12 +313,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                     image_aux_attention_masks_list,
                     image_sizes,
                 )
-                if isinstance(inputs_embeds, torch.Tensor):
-                    debug_tensor("inputs_embeds", inputs_embeds)
-                elif isinstance(inputs_embeds, list):
-                    for i, input_embed in enumerate(inputs_embeds):
-                        if isinstance(input_embed, torch.Tensor):
-                            debug_tensor(f'inputs_embeds[{i}]', input_embed)
+                # inputs_embeds: [torch.Size([1, 5361, 3072]), torch.float32, cuda:1]
                 # tcm_logger.debug(f'inputs_embeds last tokens: {inputs_embeds[..., -100:]}')
         
         if IS_XLA_AVAILABLE:
