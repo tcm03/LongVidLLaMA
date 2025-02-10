@@ -810,7 +810,8 @@ class CambrianMetaForCausalLM(ABC):
             for i, image in enumerate(images):
                 if isinstance(image, torch.Tensor):
                     debug_tensor(f'images[{i}]', image)
-        vision_tower = self.get_vision_tower()
+        
+        # vision_tower = self.get_vision_tower()
         vision_tower_aux_list = self.get_model().get_vision_tower_aux_list()
         if vision_tower_aux_list is None or images is None or input_ids.shape[1] == 1:
             return (
