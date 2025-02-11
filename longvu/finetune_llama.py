@@ -448,7 +448,9 @@ def compute_metrics(eval_pred):
 
     preds = eval_pred.predictions
     labels = eval_pred.label_ids
+    debug_tensor("preds", preds)
     tcm_logger.debug(f"preds: {preds}")
+    debug_tensor("labels", labels)
     tcm_logger.debug(f"labels: {labels}")
     # # Unpack predictions and labels
     # logits, labels = eval_pred.predictions, eval_pred.label_ids
