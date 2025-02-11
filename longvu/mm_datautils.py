@@ -725,8 +725,8 @@ def preprocess_llama3(
     # roles = {"human": "<|start_header_id|>user<|end_header_id|>", "gpt": "<|start_header_id|>assistant<|end_header_id|>"}
     # @tcm: In vocab: "user": 882, "system": 9125, "assistant": 78191
     roles = {"human": "user", "gpt": "assistant"}
-    tcm_logger.debug(f"In preprocess_llama3: sources: {sources}")
-    tcm_logger.debug(f"In preprocess_llama3: has_image: {has_image}")
+    # tcm_logger.debug(f"In preprocess_llama3: sources: {sources}")
+    # tcm_logger.debug(f"In preprocess_llama3: has_image: {has_image}")
     # Add image tokens to tokenizer as a special tokens
     # Use a deepcopy of tokenizer so that we don't modify on the tokenizer
     tokenizer = copy.deepcopy(tokenizer)
@@ -819,9 +819,9 @@ def preprocess_llama3(
         input_ids.append(input_id)
         targets.append(target)
     input_ids = torch.tensor(input_ids, dtype=torch.long)
-    tcm_logger.debug(f"input_ids: {input_ids}")
+    # tcm_logger.debug(f"input_ids: {input_ids}")
     targets = torch.tensor(targets, dtype=torch.long)
-    tcm_logger.debug(f"targets: {targets}")
+    # tcm_logger.debug(f"targets: {targets}")
 
     # print("input_ids", input_ids, flush=True)
     # print("targets", targets, flush=True)
@@ -1361,7 +1361,7 @@ def preprocess(
         input_ids = conversations_tokenized["input_ids"]
 
     targets = copy.deepcopy(input_ids)
-    tcm_logger.debug(f"input_ids=targets (before human masking): {targets}")
+    # tcm_logger.debug(f"input_ids=targets (before human masking): {targets}")
     for target, source in zip(targets, sources):
         if has_image:
             # pyre-fixme[61]: `header` is undefined, or not always defined.
