@@ -1241,12 +1241,12 @@ def train() -> None:
             )
         )
     )
-
+    compute_metrics_wTokenizer = partial(compute_metrics, tokenizer=tokenizer)
     trainer = LLaVATrainer(
         model=model,
         tokenizer=tokenizer,
         args=training_args,
-        compute_metrics=compute_metrics,
+        compute_metrics=compute_metrics_wTokenizer,
         callbacks=callbacks,
         # deepspeed=training_args.deepspeed,
         **data_module,
