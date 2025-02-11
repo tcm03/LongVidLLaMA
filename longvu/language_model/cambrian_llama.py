@@ -52,6 +52,13 @@ IS_XLA_AVAILABLE = False
 logger = lgging.get_logger(__name__)
 tcm_logger = logging.getLogger("tcm_logger")
 
+def extract_engagement_label(response: str) -> int:
+    # iterate from the end
+    for i in range(len(str) - 1, -1, -1):
+        if isdigit(response[i]) and int(response[i]) in [0, 1, 2]:
+            return int(response[i])
+    return -1
+
 class CambrianConfig(LlamaConfig):
     model_type = "cambrian_llama"
 
@@ -468,6 +475,9 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 assistant_outputs = assistant_logits.argmax(dim = -1)
                 decoded_outputs = self.tokenizer.batch_decode(assistant_outputs, skip_special_tokens=True)
                 tcm_logger.info(f"Decoded assistant outputs: {decoded_outputs}")
+                pred = extract_engagement_label(decoded_outputs[0])
+                if pred == -1:
+                    tcm_logger.info(f"ENGAGEMENT LABEL UNKNOWN")
 
                 # Shift so that tokens < n predict n
                 shift_logits = logits[..., :-1, :].contiguous()
