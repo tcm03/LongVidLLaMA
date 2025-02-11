@@ -1690,6 +1690,7 @@ class CambrianMetaForCausalLM(ABC):
         )
 
     def initialize_vision_tokenizer(self, model_args, tokenizer):
+        # @tcm: add tokenizer to class also
         self.tokenizer = tokenizer
         if model_args.mm_use_im_patch_token:
             tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
