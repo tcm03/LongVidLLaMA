@@ -90,6 +90,13 @@ tcm_logger.addHandler(file_handler)
 # Prevent log propagation to the root logger
 tcm_logger.propagate = False
 
+hf_logger = hf_logging.get_logger("transformers")
+hf_logger.setLevel(logging.INFO)  # Ensure it logs debug messages
+
+# Attach the same file handler to Hugging Face's logger
+hf_logger.addHandler(file_handler)
+hf_logger.propagate = False  # Prevent duplicate logs
+
 ##### DONE LOGGING CONFIGURATION ####
 from longvu.resource_logging import *
 
