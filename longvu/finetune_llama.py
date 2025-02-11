@@ -455,8 +455,8 @@ def compute_metrics(eval_pred, tokenizer):
     dict: A dictionary with metric names as keys and their values.
     """
 
-    preds = eval_pred.predictions
-    labels = eval_pred.label_ids
+    preds = torch.from_numpy(eval_pred.predictions)
+    labels = torch.from_numpy(eval_pred.label_ids)
     debug_tensor("preds", preds)
     debug_tensor("labels", labels)
 
