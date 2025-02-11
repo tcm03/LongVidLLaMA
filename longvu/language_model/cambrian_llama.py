@@ -434,7 +434,9 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                         return_dict=return_dict, # True
                         # final_vision_feature_size=final_vision_feature_size,
                     )
-        tcm_logger.debug(f"After forward pass: outputs={outputs}")
+        # outputs: BaseModelOutputWithPast(last_hidden_state=tensor([[[-1.4433,  0.6050, -0.7025,  ..., 
+        # # -0.2153,  2.8000,  0.6008]]], device='cuda:1', grad_fn=<MulBackward0>), past_key_values=None, 
+        # hidden_states=None, attentions=None)
         with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> lm_head, logits"):
             hidden_states = outputs[0]
             # hidden_states: [torch.Size([1, 5361, 3072]), torch.float32, cuda:0]
@@ -454,6 +456,18 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
 
             loss = None
             if labels is not None:
+                # Print out decoded assistant tokens to check during finetuning
+                assert isinstance(labels, torch.Tensor), "@tcm: labels should be a tensor"
+                num_toks = labels.shape[-1]
+                output_assist_toks = None
+                for i in range(num_toks - 1, 0, -1):
+                    if labels[..., i] == 128007:
+                        output_assist_toks = labels[..., i + 1 :]
+                        break
+                assert output_assist_toks is not None and isinstance(output_assist_toks, torch.Tensor), "@tcm: output_assist_toks should be a tensor"
+                decoded_outputs = self.tokenizer.batch_decode(output_assist_toks, skip_special_tokens=True)
+                tcm_logger.info(f"Decoded assistant outputs: {decoded_outputs}")
+
                 # Shift so that tokens < n predict n
                 shift_logits = logits[..., :-1, :].contiguous()
                 # shift_logits: [torch.Size([1, 5360, 128256]), torch.float32, cuda:0]
@@ -470,7 +484,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
         if not return_dict:
             output = (logits,) + outputs[1:]
             return (loss,) + output if loss is not None else output
-        tcm_logger.debug(f"Before forward return: outputs={outputs}")
+
         return CausalLMOutputWithPast(
             loss=loss,
             logits=logits,

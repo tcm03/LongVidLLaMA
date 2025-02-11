@@ -723,6 +723,7 @@ def preprocess_llama3(
     #  `typing.Dict[<key type>, <value type>]` to avoid runtime subscripting errors.
 ) -> Dict:
     # roles = {"human": "<|start_header_id|>user<|end_header_id|>", "gpt": "<|start_header_id|>assistant<|end_header_id|>"}
+    # @tcm: In vocab: "user": 882, "system": 9125, "assistant": 78191
     roles = {"human": "user", "gpt": "assistant"}
     tcm_logger.debug(f"In preprocess_llama3: sources: {sources}")
     tcm_logger.debug(f"In preprocess_llama3: has_image: {has_image}")
@@ -732,16 +733,11 @@ def preprocess_llama3(
     # When there is actually an image, we add the image tokens as a special token
     if has_image:
         tokenizer.add_tokens(["<image>"], special_tokens=True)
-    image_token_index = tokenizer.convert_tokens_to_ids("<image>")
-    tcm_logger.debug(f"In preprocess_llama3: image_token_index: {image_token_index}")
-    bos_token_id = tokenizer.convert_tokens_to_ids("<|begin_of_text|>")
-    tcm_logger.debug(f"In preprocess_llama3: bos_token_id: {bos_token_id}")
-    start_header_id = tokenizer.convert_tokens_to_ids("<|start_header_id|>")
-    tcm_logger.debug(f"In preprocess_llama3: start_header_id: {start_header_id}")
-    end_header_id = tokenizer.convert_tokens_to_ids("<|end_header_id|>")
-    tcm_logger.debug(f"In preprocess_llama3: end_header_id: {end_header_id}")
-    eot_id = tokenizer.convert_tokens_to_ids("<|eot_id|>")
-    tcm_logger.debug(f"In preprocess_llama3: eot_id: {eot_id}")
+    image_token_index = tokenizer.convert_tokens_to_ids("<image>") # 128256
+    bos_token_id = tokenizer.convert_tokens_to_ids("<|begin_of_text|>") # 128000
+    start_header_id = tokenizer.convert_tokens_to_ids("<|start_header_id|>") # 128006
+    end_header_id = tokenizer.convert_tokens_to_ids("<|end_header_id|>") # 128007
+    eot_id = tokenizer.convert_tokens_to_ids("<|eot_id|>") # 128009
 
     unmask_tokens = [
         "<|begin_of_text|>",
@@ -749,7 +745,7 @@ def preprocess_llama3(
         "<|end_header_id|>",
         "<|eot_id|>",
         "\n\n",
-    ]
+    ] # the returned "targets" doesn't ignore or modify these tokens and leave them intact
     unmask_tokens_idx = [tokenizer.convert_tokens_to_ids(tok) for tok in unmask_tokens]
 
     # After update, calling tokenizer of llama3 will
@@ -763,8 +759,7 @@ def preprocess_llama3(
             input_ids = input_ids[1:]
         return input_ids
 
-    nl_tokens = tokenizer.convert_tokens_to_ids("\n\n")
-    tcm_logger.debug(f"In preprocess_llama3: nl_tokens: {nl_tokens}")
+    nl_tokens = tokenizer.convert_tokens_to_ids("\n\n") # None
 
     # chat_template = "{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\\n\\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{%- if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\\n\\n' }}{%- endif %}"
     chat_template = "{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}"
@@ -773,7 +768,7 @@ def preprocess_llama3(
     # Apply prompt templates
     input_ids, targets = [], []
     for i, source in enumerate(sources):
-        tcm_logger.debug(f"Sources[{i}]: {source}")
+        # tcm_logger.debug(f"Sources[{i}]: {source}")
         if roles[source[0]["from"]] != roles["human"]:
             source = source[1:]
 
@@ -785,13 +780,13 @@ def preprocess_llama3(
             [{"role": "system", "content": system_message}]
             # pyre-fixme[6]: For 1st argument expected `Union[int, str]` but got `slice`.
         )[:-4]
-        tcm_logger.debug(f"sys_mess_tmp: {sys_mess_tmp}")
+        # sys_mess_tmp: [128000, 128006, 9125, 128007, 271, 2675, 527, 264, 11190, 18328, 13, 128009]
         input_id += sys_mess_tmp
 
         target += [IGNORE_INDEX] * len(input_id)
 
         for conv in source:
-            tcm_logger.debug(f"Conv: {conv}")
+            # tcm_logger.debug(f"Conv: {conv}")
             # Make sure llava data can load
             try:
                 role = conv["role"]
@@ -807,12 +802,13 @@ def preprocess_llama3(
             # pyre-fixme[6]: For 1st argument expected `Union[int, str]` but got
             #  `slice`.
             encode_id = tokenizer.apply_chat_template(conv)[1:-4]
-            tcm_logger.debug(f"encode_id: {encode_id}")
+            # 'from': 'human': encode_id: [128006, 882, 128007, 271, 128256, 198, 2028, 2835, 374, 264, 38403, ..., 1193, 13, 128009]
+            # 'from': 'gpt': encode_id: [128006, 78191, 128007, 271, 791, 20392, 2440, 315, 279, 2835, 374, 220, 17, 13, 128009]
             input_id += encode_id
             if role in ["user", "system"]:
-                target += [IGNORE_INDEX] * len(encode_id)
+                target += [IGNORE_INDEX] * len(encode_id) # we ignore user and system tokens during prediction (forward or inference)
             else:
-                target += encode_id
+                target += encode_id # assistant tokens are gold labels for prediction
 
         assert len(input_id) == len(target), f"{len(input_id)} != {len(target)}"
         for idx, encode_id in enumerate(input_id):
