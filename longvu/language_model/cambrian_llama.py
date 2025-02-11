@@ -459,13 +459,14 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 # Print out decoded assistant tokens to check during finetuning
                 assert isinstance(labels, torch.Tensor), "@tcm: labels should be a tensor"
                 num_toks = labels.shape[-1]
-                output_assist_toks = None
+                assistant_logits = None
                 for i in range(num_toks - 1, 0, -1):
                     if labels[..., i] == 128007:
-                        output_assist_toks = labels[..., i + 1 :]
+                        assistant_logits = logits[..., i+1:, :]
                         break
-                assert output_assist_toks is not None and isinstance(output_assist_toks, torch.Tensor), "@tcm: output_assist_toks should be a tensor"
-                decoded_outputs = self.tokenizer.batch_decode(output_assist_toks, skip_special_tokens=True)
+                assert assistant_logits is not None and isinstance(assistant_logits, torch.Tensor), "@tcm: assistant_logits should be a tensor"
+                assistant_outputs = assistant_logits.argmax(dim = -1)
+                decoded_outputs = self.tokenizer.batch_decode(assistant_outputs, skip_special_tokens=True)
                 tcm_logger.info(f"Decoded assistant outputs: {decoded_outputs}")
 
                 # Shift so that tokens < n predict n
