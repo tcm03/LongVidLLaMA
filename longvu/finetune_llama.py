@@ -479,7 +479,9 @@ def compute_metrics(eval_pred, tokenizer):
         cur_outputs = cur_logits.argmax(dim = -1)
         cur_labels = labels[i, output_range[0]:output_range[1]].unsqueeze(0)
         decoded_outputs = tokenizer.batch_decode(cur_outputs, skip_special_tokens=True)
+        tcm_logger.debug(f"batch {i}: decoded_outputs={decoded_outputs}")
         decoded_labels = tokenizer.batch_decode(cur_labels, skip_special_tokens=True)
+        tcm_logger.debug(f"batch {i}: decoded_labels={decoded_labels}")
         pred_label = extract_engagement_label(decoded_outputs[0])
         gold_label = extract_engagement_label(decoded_labels[0])
         pred_labels.append(pred_label)
@@ -488,7 +490,8 @@ def compute_metrics(eval_pred, tokenizer):
     # # Get predicted class by taking the argmax of logits
     # predictions = logits.argmax(axis=-1)
     # logging.info(f'predictions={predictions}')
-    
+    tcm_logger.debug(f"pred_labels={pred_labels}")
+    tcm_logger.debug(f"gold_labels={gold_labels}")
     # Compute accuracy
     acc = accuracy_score(gold_labels, pred_labels)
     
