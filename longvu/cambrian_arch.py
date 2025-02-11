@@ -1364,10 +1364,10 @@ class CambrianMetaForCausalLM(ABC):
         image_token_indices_batch = []
         cur_image_idx = 0
         with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> Embedding+Cross-modal+STC"):
-            tcm_logger.debug(f"len(input_ids): {len(input_ids)}")
+            # tcm_logger.debug(f"len(input_ids): {len(input_ids)}")
             for batch_idx, cur_input_ids in enumerate(input_ids):
                 # cur_input_ids: [torch.Size([238]), torch.int64, cuda:1]
-                tcm_logger.debug(f"batch_idx={batch_idx}, cur_input_ids={cur_input_ids}")
+                # tcm_logger.debug(f"batch_idx={batch_idx}, cur_input_ids={cur_input_ids}")
                 num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
                 if num_images == 0:
                     cur_image_features = image_features[cur_image_idx]
@@ -1391,7 +1391,7 @@ class CambrianMetaForCausalLM(ABC):
                 cur_input_ids_noim = []
                 # cur_labels: [torch.Size([238]), torch.int64, cuda:1]
                 cur_labels = labels[batch_idx]
-                tcm_logger.debug(f"cur_labels={cur_labels}")
+                # tcm_logger.debug(f"cur_labels={cur_labels}")
                 cur_labels_noim = []
                 for i in range(len(image_token_indices) - 1):
                     cur_input_ids_noim.append(
@@ -1550,7 +1550,7 @@ class CambrianMetaForCausalLM(ABC):
                     # cur_input_embeds_no_im[0]: [torch.Size([16, 3072]), torch.bfloat16, cuda:1]
                     # cur_input_embeds_no_im[1]: [torch.Size([221, 3072]), torch.bfloat16, cuda:1]
                     cur_new_labels.append(cur_labels_noim[i])
-                    tcm_logger.debug(f"cur_labels_noim[{i}]={cur_labels_noim[i]}")
+                    # tcm_logger.debug(f"cur_labels_noim[{i}]={cur_labels_noim[i]}")
                     # cur_labels_noim[0]: [torch.Size([16]), torch.int64, cuda:1]
                     # cur_labels_noim[1]: [torch.Size([221]), torch.int64, cuda:1]
                     if i < num_images:

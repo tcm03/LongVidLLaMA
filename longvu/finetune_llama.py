@@ -446,7 +446,10 @@ def compute_metrics(eval_pred):
     dict: A dictionary with metric names as keys and their values.
     """
 
-    tcm_logger.debug(f'eval_pred={eval_pred}')
+    preds = eval_pred.predictions
+    labels = eval_pred.label_ids
+    tcm_logger.debug(f"preds: {preds}")
+    tcm_logger.debug(f"labels: {labels}")
     # # Unpack predictions and labels
     # logits, labels = eval_pred.predictions, eval_pred.label_ids
     # logging.info(f'logits.shape={logits.shape}, labels={labels}')
@@ -743,14 +746,14 @@ class DataCollatorForSupervisedDataset(object):
         for i, instance in enumerate(instances):
             # if isinstance(instance["input_ids"], torch.Tensor):
             #     debug_tensor(f"instances[{i}]['input_ids']", instance["input_ids"])
-            tcm_logger.debug(f"instances[{i}]['input_ids']: {instance['input_ids']}")
+            # tcm_logger.debug(f"instances[{i}]['input_ids']: {instance['input_ids']}")
             input_ids.append(instance["input_ids"])
             # instances[0]['input_ids']: [torch.Size([154]), torch.int64, cpu]
         labels = []
         for i, instance in enumerate(instances):
             # if isinstance(instance["labels"], torch.Tensor):
             #     debug_tensor(f"instances[{i}]['labels']", instance["labels"])
-            tcm_logger.debug(f"instances[{i}]['labels']: {instance['labels']}")
+            # tcm_logger.debug(f"instances[{i}]['labels']: {instance['labels']}")
             labels.append(instance["labels"])
             # instances[0]['labels']: [torch.Size([154]), torch.int64, cpu]
         max_length = self.tokenizer.model_max_length # 8192
@@ -815,20 +818,20 @@ class DataCollatorForSupervisedDataset(object):
         # insert dummy image
         for i in range(len(input_ids)):
             if (input_ids[i] == IMAGE_TOKEN_INDEX).sum() == 0:
-                tcm_logger.debug(f"image_position: {image_position}")
+                # tcm_logger.debug(f"image_position: {image_position}")
                 cur_input_ids_tmp = input_ids[i].clone()
                 cur_input_ids_tmp[image_position + 1 :] = input_ids[
                     i, image_position:-1
                 ]
                 cur_input_ids_tmp[image_position] = IMAGE_TOKEN_INDEX
                 input_ids[i] = cur_input_ids_tmp
-                tcm_logger.debug(f"cur_input_ids_tmp[:image_position+1]: {cur_input_ids_tmp[:image_position+1]}")
+                # tcm_logger.debug(f"cur_input_ids_tmp[:image_position+1]: {cur_input_ids_tmp[:image_position+1]}")
 
                 cur_labels_tmp = labels[i].clone()
                 cur_labels_tmp[image_position + 1 :] = labels[i, image_position:-1]
                 cur_labels_tmp[image_position] = IGNORE_INDEX
                 labels[i] = cur_labels_tmp
-                tcm_logger.debug(f"cur_labels_tmp[:image_position+1]: {cur_labels_tmp[:image_position+1]}")
+                # tcm_logger.debug(f"cur_labels_tmp[:image_position+1]: {cur_labels_tmp[:image_position+1]}")
 
                 cur_attention_mask_tmp = attention_mask[i].clone()
                 cur_attention_mask_tmp[image_position + 1 :] = attention_mask[
@@ -836,7 +839,7 @@ class DataCollatorForSupervisedDataset(object):
                 ]
                 cur_attention_mask_tmp[image_position] = False
                 attention_mask[i] = cur_attention_mask_tmp
-                tcm_logger.debug(f"cur_attention_mask_tmp[:image_position+1]: {cur_attention_mask_tmp[:image_position+1]}")
+                # tcm_logger.debug(f"cur_attention_mask_tmp[:image_position+1]: {cur_attention_mask_tmp[:image_position+1]}")
         image_sizes = [instance["image_size"] for instance in instances]
         (
             new_input_ids,
@@ -876,10 +879,10 @@ class DataCollatorForSupervisedDataset(object):
             else:
                 batch["images"] = image_aux_list
 
-        if isinstance(batch['images'], list):
-            for i, img_tensor in enumerate(batch['images']):
-                if isinstance(img_tensor, torch.Tensor):
-                    debug_tensor(f"DataCollator: batch['images'][{i}]", img_tensor)
+        # if isinstance(batch['images'], list):
+        #     for i, img_tensor in enumerate(batch['images']):
+        #         if isinstance(img_tensor, torch.Tensor):
+        #             debug_tensor(f"DataCollator: batch['images'][{i}]", img_tensor)
         return batch
 
 
