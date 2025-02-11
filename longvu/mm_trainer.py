@@ -511,31 +511,25 @@ class LLaVATrainer(Trainer):
         else:
             labels = None
 
-        # if isinstance(inputs, dict):
-        #     tcm_logger.debug(f'In compute_loss(): inputs.keys: {inputs.keys()}')
         outputs = model(**inputs)
 
-        assert (isinstance(outputs, tuple) and len(outputs) == 2) or isinstance(outputs, CausalLMOutputWithPast), '@tcm: Expected: CausalLMOutputWithPast or tuple(loss, logits tensor)'
-        if isinstance(outputs, tuple):
-            logits = outputs[1]
-            loss_val = outputs[0]
-        else:
-            logits = outputs.logits
-            loss_val = outputs.loss
-            if isinstance(outputs.hidden_states, torch.Tensor):
-                debug_tensor("outputs.hidden_states", outputs.hidden_states)
-            tcm_logger.debug(f"outputs.hidden_states: {outputs.hidden_states}") # None
-            if isinstance(outputs.attentions, torch.Tensor):
-                debug_tensor("outputs.attentions", outputs.attentions)
-            tcm_logger.debug(f"outputs.attentions: {outputs.attentions}") # None
+        # assert (isinstance(outputs, tuple) and len(outputs) == 2) or isinstance(outputs, CausalLMOutputWithPast), '@tcm: Expected: CausalLMOutputWithPast or tuple(loss, logits tensor)'
+        # if isinstance(outputs, tuple):
+        #     logits = outputs[1]
+        #     loss_val = outputs[0]
+        # else:
+        #     logits = outputs.logits
+        #     loss_val = outputs.loss
+        #     # outputs.hidden_states: None
+        #     # outputs.attentions: None
             
-        output_ids = logits.argmax(dim=-1)
-        # output_ids: [torch.Size([1, 5361]), torch.int64, cuda:1]
-        debug_tensor("output_ids", output_ids)
-        assert len(output_ids) == len(inputs['input_ids']), 'Same batch size required'
-        decoded_outputs = self.tokenizer.batch_decode(output_ids[..., :min(100, output_ids.shape[-1])], skip_special_tokens=True)
-        tcm_logger.debug(f'loss={loss_val}')
-        tcm_logger.debug(f'decoded_outputs={decoded_outputs}')
+        # output_ids = logits.argmax(dim=-1)
+        # # output_ids: [torch.Size([1, 5361]), torch.int64, cuda:1]
+        # debug_tensor("output_ids", output_ids)
+        # assert len(output_ids) == len(inputs['input_ids']), 'Same batch size required'
+        # decoded_outputs = self.tokenizer.batch_decode(output_ids[..., :min(100, output_ids.shape[-1])], skip_special_tokens=True)
+        # tcm_logger.debug(f'loss={loss_val}')
+        # tcm_logger.debug(f'decoded_outputs={decoded_outputs}')    
         
         # Save past state if it exists
         # TODO: this needs to be fixed and made cleaner later.

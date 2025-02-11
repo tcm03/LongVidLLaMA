@@ -654,6 +654,7 @@ class LazySupervisedDataset(Dataset):
                 input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0]
             )
         if (data_dict["labels"] != IGNORE_INDEX).sum() == 0:
+            # @tcm: no assistant response given
             return self.__getitem__(0)
         # image exist in the data
         if has_image:
