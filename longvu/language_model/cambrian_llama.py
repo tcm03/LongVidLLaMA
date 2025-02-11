@@ -54,7 +54,7 @@ tcm_logger = logging.getLogger("tcm_logger")
 
 def extract_engagement_label(response: str) -> int:
     # iterate from the end
-    for i in range(len(str) - 1, -1, -1):
+    for i in range(len(response) - 1, -1, -1):
         if isdigit(response[i]) and int(response[i]) in [0, 1, 2]:
             return int(response[i])
     return -1
