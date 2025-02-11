@@ -46,18 +46,12 @@ sys.path.append('.')
 from longvu.resource_logging import *
 
 from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
+from ..mm_utils import extract_engagement_label
 
 IS_XLA_AVAILABLE = False
 
 logger = lgging.get_logger(__name__)
 tcm_logger = logging.getLogger("tcm_logger")
-
-def extract_engagement_label(response: str) -> int:
-    # iterate from the end
-    for i in range(len(response) - 1, -1, -1):
-        if response[i].isdigit() and int(response[i]) in [0, 1, 2]:
-            return int(response[i])
-    return -1
 
 class CambrianConfig(LlamaConfig):
     model_type = "cambrian_llama"

@@ -325,3 +325,12 @@ class KeywordsStoppingCriteria(StoppingCriteria):
             # pyre-fixme[6]: For 1st argument expected `LongTensor` but got `Tensor`.
             outputs.append(self.call_for_batch(output_ids[i].unsqueeze(0), scores))
         return all(outputs)
+
+
+
+def extract_engagement_label(response: str) -> int:
+    # iterate from the end
+    for i in range(len(response) - 1, -1, -1):
+        if response[i].isdigit() and int(response[i]) in [0, 1, 2]:
+            return int(response[i])
+    return -1
