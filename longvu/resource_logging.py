@@ -3,8 +3,9 @@ import time
 import torch
 import inspect
 import os
+import numpy as np
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 tcm_logger = logging.getLogger("tcm_logger")
 
@@ -24,7 +25,7 @@ def get_project_py_files():
                 project_py_files.add(Path(root) / file)
     return project_py_files
 
-def debug_tensor(prefix: str, tensor: torch.Tensor):
+def debug_tensor(prefix: str, tensor: Union[np.ndarray, torch.Tensor]):
     # Identify the caller frame within the project directory
     caller_filename = "Unknown"
     caller_lineno = "Unknown"
@@ -39,7 +40,9 @@ def debug_tensor(prefix: str, tensor: torch.Tensor):
         except Exception:
             continue  # Skip problematic frames
     tcm_logger.debug(f'File: {caller_filename}, Line: {caller_lineno}')
-    tcm_logger.debug(f"{prefix}: [{tensor.shape}, {tensor.dtype}, {tensor.device}]")
+    if isinstance(tensor, np.ndarray):
+        tcm_logger.debug(f"{prefix}: [{tensor.shape}, {tensor.dtype}, CPU]")
+    else: tcm_logger.debug(f"{prefix}: [{tensor.shape}, {tensor.dtype}, {tensor.device}]")
 
 def measure_resource_usage(prefix: str = ""):
     # Validate the device and collect project Python files
