@@ -6,7 +6,7 @@
 
 # Need to call this before importing transformers.
 
-
+import inspect
 import copy
 import datetime
 import json
@@ -55,6 +55,7 @@ from torch.utils.tensorboard import SummaryWriter
 from transformers import TrainerCallback
 
 import pandas as pd
+from mm_utils import extract_engagement_label
 
 from transformers.integrations import TensorBoardCallback
 TENSORBOARD_LOG_DIR_NAME: str = "tensorboard_logs"
@@ -452,6 +453,17 @@ def compute_metrics(eval_pred):
     tcm_logger.debug(f"preds: {preds}")
     debug_tensor("labels", labels)
     tcm_logger.debug(f"labels: {labels}")
+
+    stack = inspect.stack()
+    caller_filename = "Unknown"
+    caller_lineno = "Unknown"
+    for frame in stack:
+        try:
+            frame_file = Path(frame.filename).resolve()
+            lineno = frame.lineno
+            tcm_logger.debug(f"frame_file: {frame_file}, lineno: {lineno}")
+        except Exception:
+            continue  # Skip problematic frames
     # # Unpack predictions and labels
     # logits, labels = eval_pred.predictions, eval_pred.label_ids
     # logging.info(f'logits.shape={logits.shape}, labels={labels}')
