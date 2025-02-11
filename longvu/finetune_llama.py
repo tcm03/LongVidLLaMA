@@ -16,7 +16,7 @@ import uuid
 from dataclasses import dataclass, field
 from logging import Logger
 from typing import Dict, List, Optional, Sequence
-
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import numpy as np
 
 import torch
