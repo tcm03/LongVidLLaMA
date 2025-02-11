@@ -6,7 +6,7 @@
 
 # Need to call this before importing transformers.
 
-import inspect
+from functools import partial
 import copy
 import datetime
 import json
@@ -444,7 +444,7 @@ def prepare_multimodal_data(
     )
 
 
-def compute_metrics(eval_pred):
+def compute_metrics(eval_pred, tokenizer):
     """
     Computes accuracy, precision, recall, and F1-score for the sequence classification task.
 
@@ -458,45 +458,49 @@ def compute_metrics(eval_pred):
     preds = eval_pred.predictions
     labels = eval_pred.label_ids
     debug_tensor("preds", preds)
-    tcm_logger.debug(f"preds: {preds}")
     debug_tensor("labels", labels)
-    tcm_logger.debug(f"labels: {labels}")
 
-    stack = inspect.stack()
-    caller_filename = "Unknown"
-    caller_lineno = "Unknown"
-    for frame in stack:
-        try:
-            frame_file = Path(frame.filename).resolve()
-            lineno = frame.lineno
-            tcm_logger.debug(f"frame_file: {frame_file}, lineno: {lineno}")
-        except Exception:
-            continue  # Skip problematic frames
-    # # Unpack predictions and labels
-    # logits, labels = eval_pred.predictions, eval_pred.label_ids
-    # logging.info(f'logits.shape={logits.shape}, labels={labels}')
-    
+    assert preds.shape[0] == labels.shape[0], "batch size must be the same"
+    batch_size = labels.shape[0]
+    pred_labels = []
+    gold_labels = []
+    for i in range(batch_size):
+        output_range = [-1, -1]
+        for j in range(labels.shape[1] - 1, -1, -1):
+            if labels[i, j] != IGNORE_INDEX:
+                output_range[1] = j+1
+                break
+        for j in range(output_range[1] - 1, -1, -1):
+            if labels[i, j] == 128007:
+                output_range[0] = j+1
+                break
+        tcm_logger.debug(f"batch {i}: output_range={output_range}")
+        cur_logits = preds[i, output_range[0]:output_range[1], :].unsqueeze(0)
+        cur_outputs = cur_logits.argmax(dim = -1)
+        cur_labels = labels[i, output_range[0]:output_range[1]].unsqueeze(0)
+        decoded_outputs = tokenizer.batch_decode(cur_outputs, skip_special_tokens=True)
+        decoded_labels = tokenizer.batch_decode(cur_labels, skip_special_tokens=True)
+        pred_label = extract_engagement_label(decoded_outputs[0])
+        gold_label = extract_engagement_label(decoded_labels[0])
+        pred_labels.append(pred_label)
+        gold_labels.append(gold_label)
+
     # # Get predicted class by taking the argmax of logits
     # predictions = logits.argmax(axis=-1)
     # logging.info(f'predictions={predictions}')
     
-    # # Compute accuracy
-    # acc = accuracy_score(labels, predictions)
-    # # logging.info(f'acc={acc}')
+    # Compute accuracy
+    acc = accuracy_score(gold_labels, pred_labels)
     
-    # # Compute precision, recall, and F1-score
-    # precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
-    # # logging.info(f'precision={precision}, recall={recall}, f1={f1}')
+    # Compute precision, recall, and F1-score
+    precision, recall, f1, _ = precision_recall_fscore_support(gold_labels, pred_labels, average='weighted')
     
-    # # Return metrics as a dictionary
-    # return {
-    #     "accuracy": acc,
-    #     "precision": precision,
-    #     "recall": recall,
-    #     "f1": f1
-    # }
+    # Return metrics as a dictionary
     return {
-        "accuracy": 0.0,
+        "accuracy": acc,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1
     }
 
 class LazySupervisedDataset(Dataset):
