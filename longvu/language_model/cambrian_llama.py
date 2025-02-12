@@ -478,6 +478,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 assistant_logits = None
                 for i in range(num_toks - 1, 0, -1):
                     if labels[..., i] == 128007:
+                        tcm_logger.debug(f"In CambrianLlamaForCausalLM.forward(): Found assistant token at index {i-1}, cut from {i+1}")
                         assistant_logits = logits[..., i+1:, :]
                         break
                 assert assistant_logits is not None and isinstance(assistant_logits, torch.Tensor), "@tcm: assistant_logits should be a tensor"
