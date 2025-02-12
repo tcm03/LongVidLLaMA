@@ -700,6 +700,7 @@ class LLaVATrainer(Trainer):
                     logits = self.preprocess_logits_for_metrics(logits, labels)
                 logits = self.gather_function((logits))
                 if not self.args.batch_eval_metrics or description == "Prediction":
+                    debug_tensor("In LLaVATrainer.evaluation_loop()", logits)
                     all_preds.add(logits)
             if labels is not None:
                 labels = self.gather_function((labels))
