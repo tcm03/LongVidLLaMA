@@ -1691,7 +1691,6 @@ class CambrianMetaForCausalLM(ABC):
                 )
 
                 if cur_len > 0:
-                    multimodal_mask_padded[i, :cur_len] = cur_multimodal_mask
                     new_labels_padded[i, :cur_len] = cur_new_labels
                     attention_mask[i, :cur_len] = True
                     position_ids[i, :cur_len] = torch.arange(
