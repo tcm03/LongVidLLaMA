@@ -475,14 +475,17 @@ def compute_metrics(eval_pred, tokenizer):
     gold_labels = []
     for i in range(batch_size):
         output_range = [-1, -1]
+        num_assistants = 0
         for j in range(labels.shape[1]):
             if labels[i, j] == 78191:
+                num_assistants += 1
                 assert labels[i, j-1] == 128006 and labels[i, j+1] == 128007, "assistant token must be surrounded by start and end tokens"
                 output_range[0] = j+2
         for j in range(output_range[0], labels.shape[1]):
             if labels[i, j] == 128009:
                 output_range[1] = j
                 break
+        tcm_logger.debug(f"Num assistants: {num_assistants}")
         tcm_logger.debug(f"batch {i}: output_range={output_range}")
         cur_logits = preds[i, output_range[0]:output_range[1], :].unsqueeze(0)
         cur_outputs = cur_logits.argmax(dim = -1)
