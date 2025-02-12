@@ -9,6 +9,27 @@ import torch.nn as nn
 from transformers.utils import logging
 # Create a logger consistent with Hugging Face
 logger = logging.get_logger(__name__)
+from transformers.trainer_pt_utils import (
+    DistributedTensorGatherer,
+    EvalLoopContainer,
+    IterableDatasetShard,
+    LabelSmoother,
+    LayerWiseDummyOptimizer,
+    LengthGroupedSampler,
+    SequentialDistributedSampler,
+    distributed_broadcast_scalars,
+    distributed_concat,
+    find_batch_size,
+    get_model_param_count,
+    get_module_class_from_name,
+    get_parameter_names,
+    nested_concat,
+    nested_detach,
+    nested_numpify,
+    nested_xla_mesh_reduce,
+    reissue_pt_warnings,
+    remove_dummy_checkpoint,
+)
 from transformers.trainer_utils import (
     PREFIX_CHECKPOINT_DIR,
     BestRun,
