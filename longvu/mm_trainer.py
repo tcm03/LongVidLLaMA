@@ -700,6 +700,8 @@ class LLaVATrainer(Trainer):
 
             # Prediction step
             losses, logits, labels = self.prediction_step(model, inputs, prediction_loss_only, ignore_keys=ignore_keys)
+            debug_tensor("After prediction_step: logits", logits)
+            debug_tensor("After prediction_step: labels", labels)
             main_input_name = getattr(self.model, "main_input_name", "input_ids")
             inputs_decode = self._prepare_input(inputs[main_input_name]) if args.include_inputs_for_metrics else None
 
@@ -719,16 +721,19 @@ class LLaVATrainer(Trainer):
                 # Pad labels here, preparing for preprocess_logits_for_metrics in next logits block.
                 labels = self.accelerator.pad_across_processes(labels, dim=1, pad_index=-100)
             if logits is not None:
+                debug_tensor("Before accelerator.pad_across_processes: logits", logits)
                 logits = self.accelerator.pad_across_processes(logits, dim=1, pad_index=-100)
                 if self.preprocess_logits_for_metrics is not None:
                     logits = self.preprocess_logits_for_metrics(logits, labels)
+                debug_tensor("Before gather_function: logits", logits)
                 logits = self.gather_function((logits))
                 if not self.args.batch_eval_metrics or description == "Prediction":
-                    debug_tensor("In LLaVATrainer.evaluation_loop()", logits)
+                    debug_tensor("Add to all_preds: logits", logits)
                     all_preds.add(logits)
             if labels is not None:
                 labels = self.gather_function((labels))
                 if not self.args.batch_eval_metrics or description == "Prediction":
+                    debug_tensor("Add to all_preds: labels", labels)
                     all_labels.add(labels)
 
             self.control = self.callback_handler.on_prediction_step(args, self.state, self.control)
