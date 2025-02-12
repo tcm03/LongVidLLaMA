@@ -294,7 +294,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             try:
                 frame_file = Path(frame.filename).resolve()
                 lineno = frame.lineno
-                tcm_logger.debug(f"In compute_metrics(): {frame_file}:{lineno}")
+                tcm_logger.debug(f"In CambrianLlamaForCausalLM.forward(): {frame_file}:{lineno}")
             except Exception:
                 continue  # Skip problematic frames
 
