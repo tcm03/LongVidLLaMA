@@ -563,10 +563,10 @@ class LLaVATrainer(Trainer):
         if "labels" in inputs and isinstance(inputs["labels"], torch.Tensor):
             tmp_labels = copy.deepcopy(inputs["labels"])
             debug_tensor("In compute_loss(): inputs['labels']", tmp_labels)
-            if "attention_mask" in inputs and isinstance(inputs["attention_mask"], torch.Tensor):
+            if "input_ids" in inputs and "attention_mask" in inputs and isinstance(inputs["attention_mask"], torch.Tensor):
                 tmp_attention_mask = copy.deepcopy(inputs["attention_mask"])
                 tmp_attention_mask = tmp_attention_mask.bool()
-                tmp_attention_mask = tmp_attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
+                tmp_attention_mask = tmp_attention_mask | (inputs["input_ids"] == IMAGE_TOKEN_INDEX)
                 tmp_labels = [
                     cur_labels[cur_attention_mask]
                     for cur_labels, cur_attention_mask in zip(tmp_labels, tmp_attention_mask)
