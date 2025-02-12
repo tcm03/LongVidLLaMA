@@ -297,7 +297,13 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 if isinstance(image, torch.Tensor):
                     debug_tensor(f"images_{i}", image)
 
-        orig_labels = labels
+        attention_mask = attention_mask.bool()
+        attention_mask = attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
+        orig_labels = [
+            cur_labels[cur_attention_mask]
+            for cur_labels, cur_attention_mask in zip(labels, attention_mask)
+        ]
+        orig_labels = torch.stack(orig_labels, dim=0)
         if inputs_embeds is None:
             with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> prepare_inputs_labels_for_multimodal"):
                 (
@@ -510,7 +516,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
         debug_tensor("In CambrianLlamaForCausalLM.forward(): orig_labels", orig_labels)
         # assert orig_logits.shape[0:2] == orig_labels.shape[0:2], f"shape mismatch"
         for i in range(orig_labels.shape[0]):
-            out_range = (-1, -1)
+            out_range = [-1, -1]
             for j in range(orig_labels.shape[1]):
                 if orig_labels[i, j] == 78191:
                     out_range[0] = j + 1
