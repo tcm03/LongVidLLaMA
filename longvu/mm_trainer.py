@@ -562,6 +562,12 @@ class LLaVATrainer(Trainer):
         """
         if "labels" in inputs and isinstance(inputs["labels"], torch.Tensor):
             tmp_labels = copy.deepcopy(inputs["labels"])
+            if tmp_labels[0].ndim == 1:
+                tmp_labels = torch.stack(tmp_labels, dim=0)
+            elif tmp_labels[0].ndim == 2:
+                tmp_labels = torch.cat(tmp_labels, dim=0)
+            else:
+                tcm_logger.debug(f"tmp_labels[0].ndim={tmp_labels[0].ndim}")
             debug_tensor("In compute_loss(): inputs['labels']", tmp_labels)
             if "input_ids" in inputs and "attention_mask" in inputs and isinstance(inputs["attention_mask"], torch.Tensor):
                 tmp_attention_mask = copy.deepcopy(inputs["attention_mask"])
