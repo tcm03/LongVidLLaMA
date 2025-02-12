@@ -1649,6 +1649,7 @@ class CambrianMetaForCausalLM(ABC):
             zip(new_input_embeds, multimodal_mask, new_labels)
         ):
             cur_len = cur_new_embed.shape[0]
+            cur_len_mask = cur_multimodal_mask.shape[0]
             if getattr(self.config, "tokenizer_padding_side", "right") == "left":
                 new_input_embeds_padded.append(
                     torch.cat(
@@ -1664,7 +1665,6 @@ class CambrianMetaForCausalLM(ABC):
                     )
                 )
                 if cur_len > 0:
-                    multimodal_mask_padded[i, -cur_len:] = cur_multimodal_mask
                     new_labels_padded[i, -cur_len:] = cur_new_labels
                     attention_mask[i, -cur_len:] = True
                     position_ids[i, -cur_len:] = torch.arange(
@@ -1673,6 +1673,8 @@ class CambrianMetaForCausalLM(ABC):
                         dtype=position_ids.dtype,
                         device=position_ids.device,
                     )
+                if cur_len_mask > 0:
+                    multimodal_mask_padded[i, -cur_len_mask:] = cur_multimodal_mask
             else:
                 new_input_embeds_padded.append(
                     torch.cat(
@@ -1698,6 +1700,8 @@ class CambrianMetaForCausalLM(ABC):
                         dtype=position_ids.dtype,
                         device=position_ids.device,
                     )
+                if cur_len_mask > 0:
+                    multimodal_mask_padded[i, :cur_len_mask] = cur_multimodal_mask
 
         new_input_embeds = torch.stack(new_input_embeds_padded, dim=0)
 
