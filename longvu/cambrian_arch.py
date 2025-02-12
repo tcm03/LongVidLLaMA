@@ -1365,6 +1365,7 @@ class CambrianMetaForCausalLM(ABC):
         cur_image_idx = 0
         with MeasureResourceUsage("CambrianMetaForCausalLM -> prepare_inputs_labels_for_multimodal -> Embedding+Cross-modal+STC"):
             # tcm_logger.debug(f"len(input_ids): {len(input_ids)}")
+            multimodal_mask = []
             for batch_idx, cur_input_ids in enumerate(input_ids):
                 # cur_input_ids: [torch.Size([238]), torch.int64, cuda:1]
                 # tcm_logger.debug(f"batch_idx={batch_idx}, cur_input_ids={cur_input_ids}")
@@ -1545,8 +1546,16 @@ class CambrianMetaForCausalLM(ABC):
                     image_features[cur_image_idx] = new_visual_emb_frames[:max_visual_len]
 
                 # Interleaving text and non-text embeddings...
+                cur_multimodal_mask = []
                 for i in range(num_images + 1):
                     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
+                    cur_multimodal_mask.append(
+                        torch.full(
+                            (cur_input_embeds_no_im[i].shape[0],), 
+                            fill_value = True, 
+                            dtype=torch.bool
+                        )
+                    )
                     # cur_input_embeds_no_im[0]: [torch.Size([16, 3072]), torch.bfloat16, cuda:1]
                     # cur_input_embeds_no_im[1]: [torch.Size([221, 3072]), torch.bfloat16, cuda:1]
                     cur_new_labels.append(cur_labels_noim[i])
@@ -1558,6 +1567,13 @@ class CambrianMetaForCausalLM(ABC):
                         # cur_image_features: [torch.Size([5124, 3072]), torch.float32, cuda:1]
                         cur_image_idx += 1
                         cur_new_input_embeds.append(cur_image_features)
+                        cur_multimodal_mask.append(
+                            torch.full(
+                                (cur_image_features.shape[0],),
+                                fill_value=False,
+                                dtype=torch.bool,
+                            )
+                        )
                         label_tensor = torch.full(
                                             (cur_image_features.shape[0],),
                                             IGNORE_INDEX,
@@ -1571,10 +1587,13 @@ class CambrianMetaForCausalLM(ABC):
 
                 cur_new_input_embeds = torch.cat(cur_new_input_embeds)
                 # cur_new_input_embeds: [torch.Size([5361, 3072]), torch.float32, cuda:1]
+                cur_multimodal_mask = [x.to(self.device) for x in cur_multimodal_mask]
+                cur_multimodal_mask = torch.cat(cur_multimodal_mask)
                 cur_new_labels = torch.cat(cur_new_labels)
                 # cur_new_labels: [torch.Size([5361]), torch.int64, cuda:1]
 
                 new_input_embeds.append(cur_new_input_embeds)
+                multimodal_mask.append(cur_multimodal_mask)
                 new_labels.append(cur_new_labels)
 
         # Truncate sequences to max length as image embeddings can make the sequence longer
@@ -1585,6 +1604,9 @@ class CambrianMetaForCausalLM(ABC):
             new_input_embeds = [
                 x[:tokenizer_model_max_length] for x in new_input_embeds
             ]
+            multimodal_mask = [
+                x[:tokenizer_model_max_length] for x in multimodal_mask
+            ]
             new_labels = [x[:tokenizer_model_max_length] for x in new_labels]
 
         # Combine them
@@ -1592,6 +1614,11 @@ class CambrianMetaForCausalLM(ABC):
         batch_size = len(new_input_embeds)
 
         new_input_embeds_padded = []
+        multimodal_mask_padded = torch.ones(
+            (batch_size, max_len),
+            dtype=multimodal_mask[0].dtype,
+            device=multimodal_mask[0].device,
+        )
         new_labels_padded = torch.full(
             (batch_size, max_len),
             IGNORE_INDEX,
@@ -1610,8 +1637,8 @@ class CambrianMetaForCausalLM(ABC):
         )
 
         # Padding embedding sequences in a batch...
-        for i, (cur_new_embed, cur_new_labels) in enumerate(
-            zip(new_input_embeds, new_labels)
+        for i, (cur_new_embed, cur_multimodal_mask, cur_new_labels) in enumerate(
+            zip(new_input_embeds, multimodal_mask, new_labels)
         ):
             cur_len = cur_new_embed.shape[0]
             if getattr(self.config, "tokenizer_padding_side", "right") == "left":
@@ -1629,6 +1656,7 @@ class CambrianMetaForCausalLM(ABC):
                     )
                 )
                 if cur_len > 0:
+                    multimodal_mask_padded[i, -cur_len:] = cur_multimodal_mask
                     new_labels_padded[i, -cur_len:] = cur_new_labels
                     attention_mask[i, -cur_len:] = True
                     position_ids[i, -cur_len:] = torch.arange(
@@ -1651,7 +1679,9 @@ class CambrianMetaForCausalLM(ABC):
                         dim=0,
                     )
                 )
+
                 if cur_len > 0:
+                    multimodal_mask_padded[i, :cur_len] = cur_multimodal_mask
                     new_labels_padded[i, :cur_len] = cur_new_labels
                     attention_mask[i, :cur_len] = True
                     position_ids[i, :cur_len] = torch.arange(
@@ -1662,6 +1692,8 @@ class CambrianMetaForCausalLM(ABC):
                     )
 
         new_input_embeds = torch.stack(new_input_embeds_padded, dim=0)
+
+        new_multimodal_mask = multimodal_mask_padded
 
         if _labels is None:
             new_labels = None
@@ -1682,6 +1714,7 @@ class CambrianMetaForCausalLM(ABC):
             attention_mask,
             past_key_values,
             new_input_embeds,
+            new_multimodal_mask,
             new_labels,
             vision_tower_aux_feature_list_final,
             vision_tower_aux_attention_masks_list_final,
