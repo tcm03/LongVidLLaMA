@@ -461,6 +461,15 @@ def compute_metrics(eval_pred, tokenizer):
 
     preds = torch.from_numpy(eval_pred.predictions)
     labels = torch.from_numpy(eval_pred.label_ids)
+    inputs = eval_pred.inputs
+    for i, input in enumerate(inputs):
+        if isinstance(input, torch.Tensor):
+            debug_tensor(f"inputs[{i}]", input)
+        else:
+            tcm_logger.debug(f"type(inputs[{i}]): {type(input)}")
+    return {
+        "accuracy": 0.0
+    }
     attention_mask = torch.from_numpy(eval_pred.inputs["attention_mask"])
     input_ids = torch.from_numpy(eval_pred.inputs["input_ids"])
     debug_tensor("preds", preds)
