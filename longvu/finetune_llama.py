@@ -467,11 +467,8 @@ def compute_metrics(eval_pred, tokenizer):
         debug_tensor(f"inputs[{i}]", input)
     for i, mask in enumerate(masks):
         debug_tensor(f"masks[{i}]", mask)
-    return {
-        "accuracy": 0.0
-    }
-    attention_mask = torch.from_numpy(eval_pred.inputs["attention_mask"])
-    input_ids = torch.from_numpy(eval_pred.inputs["input_ids"])
+    attention_mask = torch.stack([torch.from_numpy(mask) for mask in masks], dim = 0)
+    input_ids = torch.stack([torch.from_numpy(input) for input in inputs], dim = 0)
     debug_tensor("preds", preds)
     debug_tensor("labels", labels)
     debug_tensor("attention_mask", attention_mask)

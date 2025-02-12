@@ -71,6 +71,47 @@ import logging
 from resource_logging import *
 tcm_logger = logging.getLogger("tcm_logger")
 
+class EvalPredictionWithMask(EvalPrediction):
+    
+    def __init__(
+        self,
+        predictions: Union[np.ndarray, Tuple[np.ndarray]],
+        label_ids: Union[np.ndarray, Tuple[np.ndarray]],
+        inputs: Optional[Union[np.ndarray, Tuple[np.ndarray]]] = None,
+        masks: Optional[Union[np.ndarray, Tuple[np.ndarray]]] = None,
+    ):
+        super().__init__(predictions, label_ids, inputs)
+        self.masks = masks
+
+    def __iter__(self):
+        if self.inputs is not None and self.masks is not None:
+            return iter((self.predictions, self.label_ids, self.inputs, self.masks))
+        elif self.inputs is not None:
+            return iter((self.predictions, self.label_ids, self.inputs))
+        elif self.masks is not None:
+            return iter((self.predictions, self.label_ids, self.masks))
+        else:
+            return iter((self.predictions, self.label_ids))
+
+    def __getitem__(self, idx):
+        if idx < 0 or idx > 3:
+            raise IndexError("tuple index out of range")
+        if idx == 3 and self.masks is None:
+            raise IndexError("tuple index out of range")
+        if idx == 2 and self.inputs is None and self.masks is None:
+            raise IndexError("tuple index out of range")
+        if idx == 0:
+            return self.predictions
+        elif idx == 1:
+            return self.label_ids
+        elif idx == 2:
+            if self.inputs is None:
+                return self.masks
+            else:
+                return self.inputs
+        elif idx == 3:
+            return self.masks
+
 
 # pyre-fixme[3]: Return type must be annotated.
 # pyre-fixme[2]: Parameter must be annotated.
@@ -776,12 +817,12 @@ class LLaVATrainer(Trainer):
                     is_last_step = self.accelerator.gradient_state.end_of_dataloader
                     if args.include_inputs_for_metrics:
                         metrics = self.compute_metrics(
-                            EvalPrediction(predictions=logits, label_ids=labels, inputs=inputs),
+                            EvalPredictionWithMask(predictions=logits, label_ids=labels, inputs=inputs),
                             compute_result=is_last_step,
                         )
                     else:
                         metrics = self.compute_metrics(
-                            EvalPrediction(predictions=logits, label_ids=labels),
+                            EvalPredictionWithMask(predictions=logits, label_ids=labels),
                             compute_result=is_last_step,
                         )
 
@@ -836,10 +877,10 @@ class LLaVATrainer(Trainer):
         ):
             if args.include_inputs_for_metrics:
                 metrics = self.compute_metrics(
-                    EvalPrediction(predictions=all_preds, label_ids=all_labels, inputs=all_inputs, masks=all_masks)
+                    EvalPredictionWithMask(predictions=all_preds, label_ids=all_labels, inputs=all_inputs, masks=all_masks)
                 )
             else:
-                metrics = self.compute_metrics(EvalPrediction(predictions=all_preds, label_ids=all_labels))
+                metrics = self.compute_metrics(EvalPredictionWithMask(predictions=all_preds, label_ids=all_labels))
         elif metrics is None:
             metrics = {}
 
