@@ -1,6 +1,6 @@
 # pyre-strict
 import os
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Union, Any, Tuple
 
 import torch
 import torch.nn as nn
