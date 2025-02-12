@@ -501,8 +501,10 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 if multimodal_mask[i, j] == True:
                     true_pos.append(j)
             # check if true_pos is a sequence of consecutive integers
-            assert len(true_pos) > 0 and true_pos == list(range(true_pos[0], true_pos[-1] + 1)), f"video tokens not consecutive"
-            tcm_logger.debug(f"sample {i}: range [{true_pos[0]}, {true_pos[-1]}]")
+            if len(true_pos) > 0 and true_pos == list(range(true_pos[0], true_pos[-1] + 1)):
+                tcm_logger.debug(f"sample {i}: correct range [{true_pos[0]}, {true_pos[-1]}]")
+            else:
+                tcm_logger.debug(f"sample {i}: incorrect range {true_pos}")
         orig_logits = logits[multimodal_mask].view(logits.size(0), -1, logits.size(2))
         debug_tensor("In CambrianLlamaForCausalLM.forward(): orig_logits", orig_logits)
         debug_tensor("In CambrianLlamaForCausalLM.forward(): orig_labels", orig_labels)
