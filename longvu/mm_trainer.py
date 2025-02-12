@@ -6,6 +6,9 @@ import torch
 import torch.nn as nn
 
 #### DECODE TRANSFORMERS ####
+from transformers.utils import logging
+# Create a logger consistent with Hugging Face
+logger = logging.get_logger(__name__)
 from transformers.trainer_utils import (
     PREFIX_CHECKPOINT_DIR,
     BestRun,
