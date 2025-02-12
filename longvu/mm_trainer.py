@@ -703,8 +703,8 @@ class LLaVATrainer(Trainer):
             main_input_name = getattr(self.model, "main_input_name", "input_ids")
             inputs_decode = self._prepare_input(inputs[main_input_name]) if args.include_inputs_for_metrics else None
 
-            if is_torch_xla_available():
-                xm.mark_step()
+            # if is_torch_xla_available():
+            #     xm.mark_step()
 
             # Update containers
             if losses is not None:
