@@ -289,6 +289,15 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
         cache_position=None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
 
+        stack = inspect.stack()
+        for frame in stack:
+            try:
+                frame_file = Path(frame.filename).resolve()
+                lineno = frame.lineno
+                tcm_logger.debug(f"In compute_metrics(): {frame_file}:{lineno}")
+            except Exception:
+                continue  # Skip problematic frames
+
         final_vision_feature_size = None
         if isinstance(images, torch.Tensor):
             debug_tensor("images", images)
@@ -474,7 +483,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 assert assistant_logits is not None and isinstance(assistant_logits, torch.Tensor), "@tcm: assistant_logits should be a tensor"
                 assistant_outputs = assistant_logits.argmax(dim = -1)
                 decoded_outputs = self.tokenizer.batch_decode(assistant_outputs, skip_special_tokens=True)
-                tcm_logger.info(f"Decoded assistant outputs: {decoded_outputs}")
+                tcm_logger.info(f"In CambrianLlamaForCausalLM.forward(): Decoded assistant outputs: {decoded_outputs}")
                 pred = extract_engagement_label(decoded_outputs[0])
                 if pred == -1:
                     tcm_logger.info(f"ENGAGEMENT LABEL UNKNOWN")
