@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 #### DECODE TRANSFORMERS ####
-from .trainer_utils import (
+from transformers.trainer_utils import (
     PREFIX_CHECKPOINT_DIR,
     BestRun,
     EvalLoopOutput,
