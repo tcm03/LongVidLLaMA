@@ -59,6 +59,8 @@ from transformers.trainer_utils import (
 
 from longvu.mm_datautils import get_mm_adapter_state_maybe_zero_3
 from torch.utils.data import DataLoader, Sampler
+from constants import IMAGE_TOKEN_INDEX
+import copy
 
 from transformers import Trainer
 
@@ -559,11 +561,20 @@ class LLaVATrainer(Trainer):
         Subclass and override for custom behavior.
         """
         if "labels" in inputs and isinstance(inputs["labels"], torch.Tensor):
-            debug_tensor("In compute_loss(): inputs['labels']", inputs["labels"])
-            for i in range(inputs['labels'].shape[1]):
-                if inputs['labels'][0, i] == 78191:
-                    tcm_logger.debug(f"In compute_loss(): assistant token at position {i}")
-                    break
+            tmp_labels = copy.deepcopy(inputs["labels"])
+            debug_tensor("In compute_loss(): inputs['labels']", tmp_labels)
+            if "attention_mask" in inputs and isinstance(inputs["attention_mask"], torch.Tensor):
+                tmp_attention_mask = copy.deepcopy(inputs["attention_mask"])
+                tmp_attention_mask = tmp_attention_mask.bool()
+                tmp_attention_mask = tmp_attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
+                tmp_labels = [
+                    cur_labels[cur_attention_mask]
+                    for cur_labels, cur_attention_mask in zip(tmp_labels, tmp_attention_mask)
+                ]
+                for i in range(tmp_labels.shape[1]):
+                    if tmp_labels[0, i] == 78191:
+                        tcm_logger.debug(f"In compute_loss(): assistant token at position {i}")
+                        break
                 
         if self.label_smoother is not None and "labels" in inputs:
             labels = inputs.pop("labels")
