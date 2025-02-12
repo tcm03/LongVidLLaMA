@@ -522,7 +522,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 if orig_labels[i, j] == 78191:
                     out_range[0] = j + 1
                     break
-            for j in range(out_range[0], orig_logits.shape[1]):
+            for j in range(out_range[0], orig_labels.shape[1]):
                 if orig_labels[i, j] == 128009:
                     out_range[1] = j
                     break
