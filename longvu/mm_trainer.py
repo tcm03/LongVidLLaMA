@@ -562,12 +562,6 @@ class LLaVATrainer(Trainer):
         """
         if "labels" in inputs and isinstance(inputs["labels"], torch.Tensor):
             tmp_labels = copy.deepcopy(inputs["labels"])
-            if tmp_labels[0].ndim == 1:
-                tmp_labels = torch.stack(tmp_labels, dim=0)
-            elif tmp_labels[0].ndim == 2:
-                tmp_labels = torch.cat(tmp_labels, dim=0)
-            else:
-                tcm_logger.debug(f"tmp_labels[0].ndim={tmp_labels[0].ndim}")
             debug_tensor("In compute_loss(): inputs['labels']", tmp_labels)
             if "input_ids" in inputs and "attention_mask" in inputs and isinstance(inputs["attention_mask"], torch.Tensor):
                 tmp_attention_mask = copy.deepcopy(inputs["attention_mask"])
@@ -577,6 +571,7 @@ class LLaVATrainer(Trainer):
                     cur_labels[cur_attention_mask]
                     for cur_labels, cur_attention_mask in zip(tmp_labels, tmp_attention_mask)
                 ]
+                tmp_labels = torch.stack(tmp_labels)
                 for i in range(tmp_labels.shape[1]):
                     if tmp_labels[0, i] == 78191:
                         tcm_logger.debug(f"In compute_loss(): assistant token at position {i}")
