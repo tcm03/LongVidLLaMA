@@ -722,6 +722,7 @@ class LLaVATrainer(Trainer):
             debug_tensor("After prediction_step: logits", logits)
             debug_tensor("After prediction_step: labels", labels)
             main_input_name = getattr(self.model, "main_input_name", "input_ids")
+            tcm_logger.debug(f"main_input_name: {main_input_name}")
             inputs_decode = self._prepare_input(inputs[main_input_name]) if args.include_inputs_for_metrics else None
 
             # if is_torch_xla_available():
