@@ -462,8 +462,11 @@ def compute_metrics(eval_pred, tokenizer):
     preds = torch.from_numpy(eval_pred.predictions)
     labels = torch.from_numpy(eval_pred.label_ids)
     inputs = eval_pred.inputs
+    masks = eval_pred.masks
     for i, input in enumerate(inputs):
         debug_tensor(f"inputs[{i}]", input)
+    for i, mask in enumerate(masks):
+        debug_tensor(f"masks[{i}]", mask)
     return {
         "accuracy": 0.0
     }

@@ -701,6 +701,7 @@ class LLaVATrainer(Trainer):
         all_preds = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
         all_labels = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
         all_inputs = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
+        all_masks = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
 
         metrics = None
 
@@ -727,6 +728,7 @@ class LLaVATrainer(Trainer):
                 debug_tensor(f"In evaluation_loop(): inputs['{main_input_name}']", inputs[main_input_name])
             debug_tensor(f"In evaluation_loop(): inputs['attention_mask']", inputs['attention_mask'])
             inputs_decode = self._prepare_input(inputs[main_input_name]) if args.include_inputs_for_metrics else None
+            inputs_mask = self._prepare_input(inputs['attention_mask']) if args.include_inputs_for_metrics else None
             tcm_logger.debug(f"type(inputs_decode): {type(inputs_decode)}")
             if isinstance(inputs_decode, torch.Tensor):
                 debug_tensor(f"In evaluation_loop(): inputs_decode", inputs_decode)
@@ -743,6 +745,11 @@ class LLaVATrainer(Trainer):
                 inputs_decode = self.gather_function((inputs_decode))
                 if not self.args.batch_eval_metrics or description == "Prediction":
                     all_inputs.add(inputs_decode)
+            if inputs_mask is not None:
+                inputs_mask = self.accelerator.pad_across_processes(inputs_mask, dim=1, pad_index=0)
+                inputs_mask = self.gather_function((inputs_mask))
+                if not self.args.batch_eval_metrics or description == "Prediction":
+                    all_masks.add(inputs_mask)
             if labels is not None:
                 # Pad labels here, preparing for preprocess_logits_for_metrics in next logits block.
                 labels = self.accelerator.pad_across_processes(labels, dim=1, pad_index=-100)
@@ -787,6 +794,7 @@ class LLaVATrainer(Trainer):
                 all_preds.to_cpu_and_numpy()
                 all_labels.to_cpu_and_numpy()
                 all_inputs.to_cpu_and_numpy()
+                all_masks.to_cpu_and_numpy()
 
                 del losses, logits, labels, inputs
                 torch.cuda.empty_cache()
@@ -802,6 +810,7 @@ class LLaVATrainer(Trainer):
         all_preds = all_preds.get_arrays()
         all_labels = all_labels.get_arrays()
         all_inputs = all_inputs.get_arrays()
+        all_masks = all_masks.get_arrays()
 
         # Number of samples
         if has_length(eval_dataset):
@@ -827,7 +836,7 @@ class LLaVATrainer(Trainer):
         ):
             if args.include_inputs_for_metrics:
                 metrics = self.compute_metrics(
-                    EvalPrediction(predictions=all_preds, label_ids=all_labels, inputs=all_inputs)
+                    EvalPrediction(predictions=all_preds, label_ids=all_labels, inputs=all_inputs, masks=all_masks)
                 )
             else:
                 metrics = self.compute_metrics(EvalPrediction(predictions=all_preds, label_ids=all_labels))
