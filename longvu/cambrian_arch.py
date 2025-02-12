@@ -1567,6 +1567,14 @@ class CambrianMetaForCausalLM(ABC):
                         # cur_image_features: [torch.Size([5124, 3072]), torch.float32, cuda:1]
                         cur_image_idx += 1
                         cur_new_input_embeds.append(cur_image_features)
+                        # append a dummy mask token for IMAGE_TOKEN_INDEX in original labels
+                        cur_multimodal_mask.append(
+                            torch.full(
+                                (1,),
+                                fill_value=True,
+                                dtype=torch.bool,
+                            )
+                        )
                         cur_multimodal_mask.append(
                             torch.full(
                                 (cur_image_features.shape[0],),

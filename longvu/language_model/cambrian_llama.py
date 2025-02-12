@@ -289,15 +289,6 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
         cache_position=None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
 
-        stack = inspect.stack()
-        for frame in stack:
-            try:
-                frame_file = Path(frame.filename).resolve()
-                lineno = frame.lineno
-                tcm_logger.debug(f"In CambrianLlamaForCausalLM.forward(): {frame_file}:{lineno}")
-            except Exception:
-                continue  # Skip problematic frames
-
         final_vision_feature_size = None
         if isinstance(images, torch.Tensor):
             debug_tensor("images", images)
@@ -306,6 +297,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 if isinstance(image, torch.Tensor):
                     debug_tensor(f"images_{i}", image)
 
+        orig_labels = labels
         if inputs_embeds is None:
             with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> prepare_inputs_labels_for_multimodal"):
                 (
@@ -503,7 +495,30 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 shift_labels = shift_labels.to(shift_logits.device)
                 loss = loss_fct(shift_logits, shift_labels)
 
+        for i in range(multimodal_mask.shape[0]):
+            true_pos = []
+            for j in range(multimodal_mask.shape[1]):
+                if multimodal_mask[i, j] == True:
+                    true_pos.append(j)
+            # check if true_pos is a sequence of consecutive integers
+            assert len(true_pos) > 0 and true_pos == list(range(true_pos[0], true_pos[-1] + 1)), f"video tokens not consecutive"
+            tcm_logger.debug(f"sample {i}: range [{true_pos[0]}, {true_pos[-1]}]")
         orig_logits = logits[multimodal_mask].view(logits.size(0), -1, logits.size(2))
+        debug_tensor("In CambrianLlamaForCausalLM.forward(): orig_logits", orig_logits)
+        assert orig_logits.shape[0:2] == orig_labels.shape[0:2], f"shape mismatch"
+        for i in range(orig_logits.shape[0]):
+            out_range = (-1, -1)
+            for j in range(orig_logits.shape[1]):
+                if orig_labels[i, j] == 78191:
+                    out_range[0] = j + 2
+                    break
+            for j in range(out_range[0], orig_logits.shape[1]):
+                if orig_labels[i, j] == 128009:
+                    out_range[1] = j
+                    break
+            outs = orig_logits[i, out_range[0]:out_range[1], :].argmax(dim = -1).unsqueeze(0)
+            decoded_outs = self.tokenizer.batch_decode(outs, skip_special_tokens=True)
+            tcm_logger.info(f"sample {i}: decoded outputs: {decoded_outs}")
 
         if not return_dict:
             # output = (logits,) + outputs[1:]
