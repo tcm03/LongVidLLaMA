@@ -558,6 +558,20 @@ class LLaVATrainer(Trainer):
 
         Subclass and override for custom behavior.
         """
+        if "labels" in inputs:
+            tcm_logger.debug(f"type(inputs['labels']): {type(inputs['labels'])}")
+            if isinstance(inputs["labels"], torch.Tensor):
+                debug_tensor("In compute_loss(): inputs['labels']", inputs["labels"])
+                if inputs['labels'].ndim == 2:
+                    tmp_labels = inputs['labels']
+                elif inputs['labels'].ndim == 1:
+                    tmp_labels = inputs['labels'].unsqueeze(0)
+                else:
+                    tcm_logger.debug(f"inputs['labels'].ndim={inputs['labels'].ndim}")
+                for i in range(inputs['labels'].shape[1]):
+                    if inputs['labels'][0, i] == 78191:
+                        tcm_logger.debug(f"In compute_loss(): assistant token at position {i}")
+                        break
         if self.label_smoother is not None and "labels" in inputs:
             labels = inputs.pop("labels")
         else:
