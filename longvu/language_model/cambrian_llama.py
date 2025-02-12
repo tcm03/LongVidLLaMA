@@ -47,6 +47,7 @@ from longvu.resource_logging import *
 
 from ..cambrian_arch import CambrianMetaForCausalLM, CambrianMetaModel
 from ..mm_utils import extract_engagement_label
+from ..constants import IMAGE_TOKEN_INDEX
 
 IS_XLA_AVAILABLE = False
 
@@ -504,7 +505,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
         for i in range(multimodal_mask.shape[0]):
             true_pos = []
             for j in range(multimodal_mask.shape[1]):
-                if multimodal_mask[i, j] == True:
+                if multimodal_mask[i, j] == False:
                     true_pos.append(j)
             # check if true_pos is a sequence of consecutive integers
             if len(true_pos) > 0 and true_pos == list(range(true_pos[0], true_pos[-1] + 1)):
@@ -526,6 +527,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                     out_range[1] = j
                     break
             outs = orig_logits[i, out_range[0]:out_range[1], :].argmax(dim = -1).unsqueeze(0)
+            debug_tensor("outs", outs)
             decoded_outs = self.tokenizer.batch_decode(outs, skip_special_tokens=True)
             tcm_logger.info(f"sample {i}: decoded outputs: {decoded_outs}")
 
