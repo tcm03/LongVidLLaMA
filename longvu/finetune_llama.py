@@ -480,6 +480,7 @@ def compute_metrics(eval_pred, tokenizer):
         tcm_logger.debug(f"batch {i}: output_range={output_range}")
         cur_logits = preds[i, output_range[0]:output_range[1], :].unsqueeze(0)
         cur_outputs = cur_logits.argmax(dim = -1)
+        tcm_logger.debug(f"batch {i}: cur_outputs={cur_outputs}")
         cur_labels = labels[i, output_range[0]:output_range[1]].unsqueeze(0)
         decoded_outputs = tokenizer.batch_decode(cur_outputs, skip_special_tokens=True)
         tcm_logger.debug(f"batch {i}: decoded_outputs={decoded_outputs}")

@@ -526,6 +526,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 if orig_labels[i, j] == 128009:
                     out_range[1] = j
                     break
+            tcm_logger.debug(f"In CambrianLlamaForCausalLM.forward(): sample {i}: output range: {out_range}")
             outs = orig_logits[i, out_range[0]:out_range[1], :].argmax(dim = -1).unsqueeze(0)
             debug_tensor("outs", outs)
             decoded_outs = self.tokenizer.batch_decode(outs, skip_special_tokens=True)
