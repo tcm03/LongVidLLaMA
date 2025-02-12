@@ -463,10 +463,7 @@ def compute_metrics(eval_pred, tokenizer):
     labels = torch.from_numpy(eval_pred.label_ids)
     inputs = eval_pred.inputs
     for i, input in enumerate(inputs):
-        if isinstance(input, torch.Tensor):
-            debug_tensor(f"inputs[{i}]", input)
-        else:
-            tcm_logger.debug(f"type(inputs[{i}]): {type(input)}")
+        debug_tensor(f"inputs[{i}]", input)
     return {
         "accuracy": 0.0
     }
