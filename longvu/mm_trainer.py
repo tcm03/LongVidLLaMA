@@ -723,7 +723,13 @@ class LLaVATrainer(Trainer):
             debug_tensor("After prediction_step: labels", labels)
             main_input_name = getattr(self.model, "main_input_name", "input_ids")
             tcm_logger.debug(f"main_input_name: {main_input_name}")
+            if isinstance(inputs[main_input_name], torch.Tensor):
+                debug_tensor(f"In evaluation_loop(): inputs['{main_input_name}']", inputs[main_input_name])
+            debug_tensor(f"In evaluation_loop(): inputs['attention_mask']", inputs['attention_mask'])
             inputs_decode = self._prepare_input(inputs[main_input_name]) if args.include_inputs_for_metrics else None
+            tcm_logger.debug(f"type(inputs_decode): {type(inputs_decode)}")
+            if isinstance(inputs_decode, torch.Tensor):
+                debug_tensor(f"In evaluation_loop(): inputs_decode", inputs_decode)
 
             # if is_torch_xla_available():
             #     xm.mark_step()
