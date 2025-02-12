@@ -5,7 +5,7 @@
 # pyre-strict
 
 # Need to call this before importing transformers.
-
+import inspect
 from functools import partial
 import copy
 import datetime
@@ -454,6 +454,15 @@ def compute_metrics(eval_pred, tokenizer):
     Returns:
     dict: A dictionary with metric names as keys and their values.
     """
+
+    stack = inspect.stack()
+    for frame in stack:
+        try:
+            frame_file = Path(frame.filename).resolve()
+            lineno = frame.lineno
+            tcm_logger.debug(f"In compute_metrics(): {frame_file}:{lineno}")
+        except Exception:
+            continue  # Skip problematic frames
 
     preds = torch.from_numpy(eval_pred.predictions)
     labels = torch.from_numpy(eval_pred.label_ids)
