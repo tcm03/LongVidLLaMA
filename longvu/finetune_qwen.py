@@ -153,6 +153,10 @@ class TrainingArguments(transformers.TrainingArguments):
     mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
 
+    # For our seq2seq task of explaining engagement prediction, we need inputs in compute_metrics()
+    # Discuss: https://discuss.huggingface.co/t/how-to-accessing-the-input-ids-in-evalprediction-predictions-in-seq2seqtrainer/25372
+    include_inputs_for_metrics: Optional[bool] = field(default=False)
+
 
 def get_local_rank() -> int:
     if os.environ.get("LOCAL_RANK"):

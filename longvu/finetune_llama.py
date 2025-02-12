@@ -189,6 +189,10 @@ class TrainingArguments(transformers.TrainingArguments):
     mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
 
+    # For our seq2seq task of explaining engagement prediction, we need inputs in compute_metrics()
+    # Discuss: https://discuss.huggingface.co/t/how-to-accessing-the-input-ids-in-evalprediction-predictions-in-seq2seqtrainer/25372
+    include_inputs_for_metrics: Optional[bool] = field(default=False)
+
 
 def get_local_rank() -> int:
     if os.environ.get("LOCAL_RANK"):
@@ -457,8 +461,20 @@ def compute_metrics(eval_pred, tokenizer):
 
     preds = torch.from_numpy(eval_pred.predictions)
     labels = torch.from_numpy(eval_pred.label_ids)
+    attention_mask = torch.from_numpy(eval_pred.inputs["attention_mask"])
+    input_ids = torch.from_numpy(eval_pred.inputs["input_ids"])
     debug_tensor("preds", preds)
     debug_tensor("labels", labels)
+    debug_tensor("attention_mask", attention_mask)
+    debug_tensor("input_ids", input_ids)
+
+    attention_mask = attention_mask.bool()
+    attention_mask = attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
+    labels = [
+        cur_labels[cur_attention_mask]
+        for cur_labels, cur_attention_mask in zip(labels, attention_mask)
+    ]
+    labels = torch.stack(labels)
 
     assert preds.shape[0] == labels.shape[0], "batch size must be the same"
     batch_size = labels.shape[0]
@@ -466,17 +482,14 @@ def compute_metrics(eval_pred, tokenizer):
     gold_labels = []
     for i in range(batch_size):
         output_range = [-1, -1]
-        num_assistants = 0
         for j in range(labels.shape[1]):
             if labels[i, j] == 78191:
-                num_assistants += 1
                 assert labels[i, j-1] == 128006 and labels[i, j+1] == 128007, "assistant token must be surrounded by start and end tokens"
-                output_range[0] = j+2
+                output_range[0] = j+1
         for j in range(output_range[0], labels.shape[1]):
             if labels[i, j] == 128009:
                 output_range[1] = j
                 break
-        tcm_logger.debug(f"Num assistants: {num_assistants}")
         tcm_logger.debug(f"batch {i}: output_range={output_range}")
         cur_logits = preds[i, output_range[0]:output_range[1], :].unsqueeze(0)
         cur_outputs = cur_logits.argmax(dim = -1)
