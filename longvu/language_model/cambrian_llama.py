@@ -314,6 +314,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                     attention_mask,
                     past_key_values,
                     inputs_embeds,
+                    multimodal_mask,
                     labels,
                     vision_tower_aux_feature_list,
                     vision_tower_aux_attention_masks_list,
@@ -502,13 +503,17 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 shift_labels = shift_labels.to(shift_logits.device)
                 loss = loss_fct(shift_logits, shift_labels)
 
+        orig_logits = logits[multimodal_mask].view(logits.size(0), -1, logits.size(2))
+
         if not return_dict:
-            output = (logits,) + outputs[1:]
+            # output = (logits,) + outputs[1:]
+            output = (orig_logits,) + outputs[1:]
             return (loss,) + output if loss is not None else output
 
         return CausalLMOutputWithPast(
             loss=loss,
-            logits=logits,
+            # logits=logits,
+            logits=orig_logits,
             past_key_values=outputs.past_key_values,
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
