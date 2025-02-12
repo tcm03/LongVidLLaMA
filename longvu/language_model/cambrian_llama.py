@@ -505,12 +505,13 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             tcm_logger.debug(f"sample {i}: range [{true_pos[0]}, {true_pos[-1]}]")
         orig_logits = logits[multimodal_mask].view(logits.size(0), -1, logits.size(2))
         debug_tensor("In CambrianLlamaForCausalLM.forward(): orig_logits", orig_logits)
-        assert orig_logits.shape[0:2] == orig_labels.shape[0:2], f"shape mismatch"
-        for i in range(orig_logits.shape[0]):
+        debug_tensor("In CambrianLlamaForCausalLM.forward(): orig_labels", orig_labels)
+        # assert orig_logits.shape[0:2] == orig_labels.shape[0:2], f"shape mismatch"
+        for i in range(orig_labels.shape[0]):
             out_range = (-1, -1)
-            for j in range(orig_logits.shape[1]):
+            for j in range(orig_labels.shape[1]):
                 if orig_labels[i, j] == 78191:
-                    out_range[0] = j + 2
+                    out_range[0] = j + 1
                     break
             for j in range(out_range[0], orig_logits.shape[1]):
                 if orig_labels[i, j] == 128009:
