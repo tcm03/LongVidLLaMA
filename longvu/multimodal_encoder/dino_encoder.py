@@ -115,13 +115,18 @@ class DinoVisionTower(BaseVisionTower):
     def _forward(self, images):
         # logger.warning(f"images shape: {images.shape}")
         with torch.set_grad_enabled(self.unfreeze_mm_vision_tower):
+            dest_images = images.to(device=self.device, dtype=self.dtype)
             image_forward_outs = self.vision_tower.forward(
-                images.to(device=self.device, dtype=self.dtype)
+                dest_images
             )
+            del dest_images
+            torch.cuda.empty_cache()
             # logger.warning(f"image_forward_outs shape: {image_forward_outs['last_hidden_state'].shape}")
             # @tcm: Error occurs when images.dtype=torch.float16 but what desired for the returned features is torch.bfloat16
             # image_features = self.feature_select(image_forward_outs).to(images.dtype)
             image_features = self.feature_select(image_forward_outs)
+            del image_forward_outs
+            torch.cuda.empty_cache()
             # logger.warning(f"image_features shape: {image_features.shape}")
             interp_features = self.interpolate(image_features)
             # logger.warning(f"interp_features shape: {interp_features.shape}")

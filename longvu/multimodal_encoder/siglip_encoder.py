@@ -70,9 +70,12 @@ class SiglipVisionTower(BaseVisionTower):
 
     def _forward(self, images, interpolate_token=576):
         with torch.set_grad_enabled(self.unfreeze_mm_vision_tower):
+            dest_images = images.to(device=self.device, dtype=self.dtype)
             image_features = self.vision_tower.forward(
-                images.to(device=self.device, dtype=self.dtype),
+                dest_images,
                 output_hidden_states=True,
             ).hidden_states[-1]
+            del dest_images
+            torch.cuda.empty_cache()
             interp_features = self.interpolate(image_features)
             return interp_features

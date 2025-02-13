@@ -616,6 +616,11 @@ class CambrianMetaForCausalLM(ABC):
                     image_aux_features_chunk = vision_tower_aux(chunk)
                     image_aux_features_chunks.append(image_aux_features_chunk)
                 image_aux_features = torch.cat(image_aux_features_chunks, dim=0)
+
+                for image_aux_features_chunk in image_aux_features_chunks:
+                    del image_aux_features_chunk
+                del image_aux_features_chunks
+                torch.cuda.empty_cache()
             else:
                 image_aux_features = vision_tower_aux(image_aux)
             return image_aux_features
@@ -630,6 +635,10 @@ class CambrianMetaForCausalLM(ABC):
                     image_aux_features_chunk = vision_tower_aux(chunk)
                     image_aux_features_chunks.append(image_aux_features_chunk)
                 image_aux_features = torch.cat(image_aux_features_chunks, dim=0)
+                for image_aux_features_chunk in image_aux_features_chunks:
+                    del image_aux_features_chunk
+                del image_aux_features_chunks
+                torch.cuda.empty_cache()
             else:
                 image_aux_features = vision_tower_aux(image_aux)
             return image_aux_features
@@ -645,6 +654,11 @@ class CambrianMetaForCausalLM(ABC):
                         image_aux_features_chunk = vision_tower_aux(chunk)
                         image_aux_features_chunks.append(image_aux_features_chunk)
                     image_aux_features = torch.cat(image_aux_features_chunks, dim=0)
+
+                    for image_aux_features_chunk in image_aux_features_chunks:
+                        del image_aux_features_chunk
+                    del image_aux_features_chunks
+                    torch.cuda.empty_cache()
                 else:
                     image_aux_features = vision_tower_aux(image_aux)
                 image_aux_features_list.append(image_aux_features)
