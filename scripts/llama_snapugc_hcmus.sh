@@ -23,8 +23,8 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
-    --save_steps 200 \
-    --eval_steps 200 \
+    --save_steps 500 \
+    --eval_steps 500 \
     --logging_steps 1 \
     --eval_strategy "epoch" \
     --save_strategy "steps" \

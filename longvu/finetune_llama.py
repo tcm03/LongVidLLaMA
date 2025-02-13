@@ -1298,21 +1298,20 @@ def train() -> None:
     )
 
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
-#    if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
-#        # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
-#        trainer.train(resume_from_checkpoint=True)
-#    else:
-#        trainer.train()
+    if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
+        # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
+        trainer.train(resume_from_checkpoint=True)
+    else:
+        trainer.train()
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
-    trainer.train()
     trainer.evaluate()
     trainer.save_state()
 
-#    safe_save_model_for_hf_trainer(
-#        trainer=trainer,
-#        # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
-#        output_dir=model_args.output_model_filename,
-#    )
+    safe_save_model_for_hf_trainer(
+        trainer=trainer,
+        # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
+        output_dir=model_args.output_model_filename,
+    )
 
 
 if __name__ == "__main__":
