@@ -464,6 +464,7 @@ def compute_metrics(eval_pred, tokenizer):
     labels = torch.from_numpy(eval_pred.label_ids)
     inputs = eval_pred.inputs
     masks = eval_pred.masks
+    tcm_logger.info("In compute_metrics()")
     for i, input in enumerate(inputs):
         debug_tensor(f"inputs[{i}]", input)
     for i, mask in enumerate(masks):
@@ -973,6 +974,22 @@ def make_supervised_data_module(
     )
 
 
+class CustomCallback(TrainerCallback):
+
+    def __init__(self, trainer) -> None:
+        super().__init__()
+        self._trainer = trainer
+
+    def on_epoch_end(self, args, state, control, **kwargs):
+        if control.should_evaluate:
+            control_copy = copy.deepcopy(control)
+            self._trainer.evaluate(
+                eval_dataset = self._trainer.train_dataset,
+                metric_key_prefix = "train_"
+            )
+            return control_copy
+
+
 def train() -> None:
     dist.init_process_group(backend="nccl", timeout=datetime.timedelta(hours=8))
     parser = transformers.HfArgumentParser(
@@ -1235,19 +1252,19 @@ def train() -> None:
         return model
 
     model = convert_bn_to_float(model)
-    with open('cambrianllama.txt', 'w', encoding='utf-8') as f:
-        f.write(str(model))
+    # with open('cambrianllama.txt', 'w', encoding='utf-8') as f:
+    #     f.write(str(model))
 
     os.environ[f"FSDP_USE_ORIG_PARAMS"] = "true"
     # pyre-fixme[16]: `DataClass` has no attribute `fsdp_config`.
     training_args.fsdp_config["use_orig_params"] = True
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
 
-    with open('environ.json', 'w', encoding = 'utf-8') as f:
-        json.dump(dict(os.environ), f, indent=4)
+    # with open('environ.json', 'w', encoding = 'utf-8') as f:
+    #     json.dump(dict(os.environ), f, indent=4)
 
-    with open('fsdp_config.json', 'w', encoding = 'utf-8') as f:
-        json.dump(dict(training_args.fsdp_config), f, indent=4)
+    # with open('fsdp_config.json', 'w', encoding = 'utf-8') as f:
+    #     json.dump(dict(training_args.fsdp_config), f, indent=4)
 
     callbacks = []
     # configure TensorboardCallback to upload to manifold
@@ -1268,6 +1285,7 @@ def train() -> None:
             )
         )
     )
+    callbacks.append(CustomCallback(trainer))
     compute_metrics_wTokenizer = partial(compute_metrics, tokenizer=tokenizer)
     trainer = LLaVATrainer(
         model=model,
@@ -1279,7 +1297,6 @@ def train() -> None:
         **data_module,
     )
 
-    torch.cuda.memory._record_memory_history(max_entries=100000)
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
 #    if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
 #        # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
@@ -1289,8 +1306,6 @@ def train() -> None:
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
     trainer.train()
     trainer.evaluate()
-    torch.cuda.memory._dump_snapshot(f"longvu_llama_{global_rank}.pkl")
-    torch.cuda.memory._record_memory_history(enabled=None)
     trainer.save_state()
 
 #    safe_save_model_for_hf_trainer(
