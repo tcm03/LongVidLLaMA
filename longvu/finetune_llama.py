@@ -1285,7 +1285,6 @@ def train() -> None:
             )
         )
     )
-    callbacks.append(CustomCallback(trainer))
     compute_metrics_wTokenizer = partial(compute_metrics, tokenizer=tokenizer)
     trainer = LLaVATrainer(
         model=model,
@@ -1296,6 +1295,7 @@ def train() -> None:
         # deepspeed=training_args.deepspeed,
         **data_module,
     )
+    trainer.add_callback(CustomCallback(trainer))
 
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
@@ -1307,11 +1307,11 @@ def train() -> None:
     trainer.evaluate()
     trainer.save_state()
 
-    safe_save_model_for_hf_trainer(
-        trainer=trainer,
-        # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
-        output_dir=model_args.output_model_filename,
-    )
+#    safe_save_model_for_hf_trainer(
+#        trainer=trainer,
+#        # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
+#        output_dir=model_args.output_model_filename,
+#    )
 
 
 if __name__ == "__main__":
