@@ -57,7 +57,7 @@ from torch.nn.utils.rnn import pad_sequence
 
 import pandas as pd
 from mm_utils import extract_engagement_label
-# from transformers.utils import logging as hf_logging  # Hugging Face logger
+from transformers.utils import logging as hf_logging  # Hugging Face logger
 
 from transformers.integrations import TensorBoardCallback
 TENSORBOARD_LOG_DIR_NAME: str = "tensorboard_logs"
@@ -92,12 +92,12 @@ tcm_logger.addHandler(file_handler)
 # Prevent log propagation to the root logger
 tcm_logger.propagate = False
 
-# hf_logger = hf_logging.get_logger("transformers")
-# hf_logger.setLevel(logging.INFO)  # Ensure it logs debug messages
+hf_logger = hf_logging.get_logger("transformers")
+hf_logger.setLevel(logging.INFO)  # Ensure it logs debug messages
 
-# # Attach the same file handler to Hugging Face's logger
-# hf_logger.addHandler(file_handler)
-# hf_logger.propagate = False  # Prevent duplicate logs
+# Attach the same file handler to Hugging Face's logger
+hf_logger.addHandler(file_handler)
+hf_logger.propagate = False  # Prevent duplicate logs
 
 ##### DONE LOGGING CONFIGURATION ####
 from longvu.resource_logging import *
@@ -1298,20 +1298,21 @@ def train() -> None:
     trainer.add_callback(CustomCallback(trainer))
 
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
-    if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
-        # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
-        trainer.train(resume_from_checkpoint=True)
-    else:
-        trainer.train()
+    # if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
+    #     # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
+    #     trainer.train(resume_from_checkpoint=True)
+    # else:
+    #     trainer.train()
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
+    trainer.train()
     trainer.evaluate()
     trainer.save_state()
 
-#    safe_save_model_for_hf_trainer(
-#        trainer=trainer,
-#        # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
-#        output_dir=model_args.output_model_filename,
-#    )
+    safe_save_model_for_hf_trainer(
+        trainer=trainer,
+        # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
+        output_dir=model_args.output_model_filename,
+    )
 
 
 if __name__ == "__main__":
