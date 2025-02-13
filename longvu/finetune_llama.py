@@ -53,6 +53,7 @@ from torch import distributed as dist
 from torch.utils.data import Dataset
 from torch.utils.tensorboard import SummaryWriter
 from transformers import TrainerCallback
+from torch.nn.utils.rnn import pad_sequence
 
 import pandas as pd
 from mm_utils import extract_engagement_label
@@ -480,7 +481,7 @@ def compute_metrics(eval_pred, tokenizer):
         cur_labels[cur_attention_mask]
         for cur_labels, cur_attention_mask in zip(labels, attention_mask)
     ]
-    labels = torch.stack(labels)
+    labels = pad_sequence(labels, batch_first = True, padding_value = IGNORE_INDEX)
 
     assert preds.shape[0] == labels.shape[0], "batch size must be the same"
     batch_size = labels.shape[0]
