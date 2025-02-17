@@ -1295,16 +1295,15 @@ def train() -> None:
         # deepspeed=training_args.deepspeed,
         **data_module,
     )
-    trainer.add_callback(CustomCallback(trainer))
+    # trainer.add_callback(CustomCallback(trainer))
 
     # pyre-fixme[16]: `DataClass` has no attribute `output_dir`.
-    # if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
-    #     # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
-    #     trainer.train(resume_from_checkpoint=True)
-    # else:
-    #     trainer.train()
+    if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
+        # pyre-fixme[16]: `LLaVATrainer` has no attribute `train`.
+        trainer.train(resume_from_checkpoint=True)
+    else:
+        trainer.train()
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
-    trainer.train()
     # trainer.evaluate()
     trainer.save_state()
 

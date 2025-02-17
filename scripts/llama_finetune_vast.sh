@@ -1,11 +1,11 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_llama3_2"
-PATH_TO_JSON_TRAIN="/raid/nthuy/SnapUGC/snapugc_train.json"
-PATH_TO_JSON_VAL="/raid/nthuy/SnapUGC/snapugc_test.json"
-PATH_TO_FOLDER="/raid/nthuy/SnapUGC"
+PATH_TO_JSON_TRAIN="/root/hcmus/EnTube_preprocessing/data/EnTube_50m_train.json"
+PATH_TO_JSON_VAL="/root/hcmus/EnTube_preprocessing/data/EnTube_50m_test.json"
+PATH_TO_FOLDER="/root/hcmus/EnTube"
 VERSION="llama3"
 
-CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=2 --rdzv_endpoint=localhost:29502 --nnodes=1 \
+CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=1 --nnodes=1 \
     longvu/finetune_llama.py \
     --output_dir "/tmp/longvu/" \
     --input_model_filename $PREV_STAGE_CHECKPOINT \
@@ -19,13 +19,13 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --bf16 True \
     --log_on_each_node False \
     --logging_dir /tmp/llava/test/ \
-    --num_train_epochs 4 \
+    --num_train_epochs 2 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
-    --save_steps 122705 \
-    --eval_steps 500 \
-    --logging_steps 1000 \
+    --save_steps 540 \
+    --eval_steps 540 \
+    --logging_steps 2 \
     --eval_strategy "epoch" \
     --save_strategy "steps" \
     --report_to "tensorboard" \
@@ -46,8 +46,6 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --tune_mm_mlp_adapter False \
     --freeze_mm_mlp_adapter False \
     --freeze_backbone True \
-    --fsdp "full_shard auto_wrap" \
-    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer' \
     --gradient_checkpointing True \
     --mm_projector_type sva \
     --image_token_len 144 \
@@ -59,5 +57,5 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --drop_threshold 0.75 \
     --label_names labels \
     --include_inputs_for_metrics True \
-    --save_only_model True
+    # --save_only_model True
     # --deepspeed ds_config_2.json

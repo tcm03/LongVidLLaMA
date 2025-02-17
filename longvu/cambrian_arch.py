@@ -677,6 +677,7 @@ class CambrianMetaForCausalLM(ABC):
         dino_features_batch = torch.split(feature_list, split_sizes, dim=0)
         new_image_aux_batch_0 = torch.split(new_image_aux_list[0], split_sizes, dim=0)
         new_image_aux_batch_1 = torch.split(new_image_aux_list[1], split_sizes, dim=0)
+        torch.cuda.empty_cache()
         new_split_sizes = []
         selected_frames_all_0 = []
         selected_frames_all_1 = []
@@ -739,13 +740,19 @@ class CambrianMetaForCausalLM(ABC):
                     (query_feature), dim=1, keepdim=True
                 )
                 similarities = torch.mean(query_feature @ query_feature.T, dim=1)
+                del query_feature
+                torch.cuda.empty_cache()
                 similarities[len(frame_features) // 2] = 0
                 indices = torch.where(similarities < threshold)[0]
+                del similarities
+                torch.cuda.empty_cache()
                 selected_frame_indices_all.append(indices)
                 selected_frames_all_0.append(new_image_aux_batch_0[i_batch][indices])
                 selected_frames_all_1.append(new_image_aux_batch_1[i_batch][indices])
                 selected_frames_feature_all.append(frame_features[indices])
                 new_split_sizes.append(len(indices))
+                del indices
+                torch.cuda.empty_cache()
                 continue
             segments_frames_0 = []
             segments_frames_1 = []
@@ -769,16 +776,23 @@ class CambrianMetaForCausalLM(ABC):
                     (query_feature), dim=1, keepdim=True
                 )
                 similarities = torch.mean(query_feature @ query_feature.T, dim=1)
+                del query_feature
+                torch.cuda.empty_cache()
                 similarities[len(segment) // 2] = 0
                 indices = torch.where(similarities < threshold)[0]
+                del similarities
+                torch.cuda.empty_cache()
                 selected_frames_0.append(segments_frames_0[i][indices])
                 selected_frames_1.append(segments_frames_1[i][indices])
                 selected_features.append(segment[indices])
                 selected_frame_indices.extend(indices + i * window_size)
+                del indices
+                torch.cuda.empty_cache()
             selected_frames_0 = torch.cat(selected_frames_0, dim=0)
             selected_frames_1 = torch.cat(selected_frames_1, dim=0)
             selected_features = torch.cat(selected_features, dim=0)
             selected_frame_indices = torch.tensor(selected_frame_indices)
+            torch.cuda.empty_cache()
             # ablation
             max_num_frames = 400  # in case of OOM
             if len(selected_frames_0) > max_num_frames:
@@ -798,6 +812,7 @@ class CambrianMetaForCausalLM(ABC):
         selected_frames_all_0 = torch.cat(selected_frames_all_0, dim=0)
         selected_frames_all_1 = torch.cat(selected_frames_all_1, dim=0)
         selected_frames_feature_all = torch.cat(selected_frames_feature_all, dim=0)
+        torch.cuda.empty_cache()
         return (
             selected_frames_feature_all,
             new_split_sizes,
