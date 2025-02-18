@@ -331,6 +331,8 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
                 )
                 # inputs_embeds: [torch.Size([1, 5361, 3072]), torch.float32, cuda:1] for 61 frames
         
+        torch.cuda.empty_cache()
+
         if IS_XLA_AVAILABLE:
             # Very Important for TorchXLA
             # self.model.gradient_checkpointing = False
@@ -453,6 +455,7 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
         # outputs: BaseModelOutputWithPast(last_hidden_state=tensor([[[-1.4433,  0.6050, -0.7025,  ..., 
         # # -0.2153,  2.8000,  0.6008]]], device='cuda:1', grad_fn=<MulBackward0>), past_key_values=None, 
         # hidden_states=None, attentions=None)
+        torch.cuda.empty_cache()
         with MeasureResourceUsage("CambrianLlamaForCausalLM -> forward -> lm_head, logits"):
             hidden_states = outputs[0]
             # hidden_states: [torch.Size([1, 5361, 3072]), torch.float32, cuda:0]
@@ -531,6 +534,8 @@ class CambrianLlamaForCausalLM(LlamaForCausalLM, CambrianMetaForCausalLM):
             debug_tensor("outs", outs)
             decoded_outs = self.tokenizer.batch_decode(outs, skip_special_tokens=True)
             tcm_logger.info(f"sample {i}: decoded outputs: {decoded_outs}")
+
+        torch.cuda.empty_cache()
 
         if not return_dict:
             # output = (logits,) + outputs[1:]
