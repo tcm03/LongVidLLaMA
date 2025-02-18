@@ -19,7 +19,7 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --bf16 True \
     --log_on_each_node False \
     --logging_dir /tmp/llava/test/ \
-    --num_train_epochs 4 \
+    --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
