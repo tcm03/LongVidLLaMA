@@ -193,6 +193,7 @@ class TrainingArguments(transformers.TrainingArguments):
     # For our seq2seq task of explaining engagement prediction, we need inputs in compute_metrics()
     # Discuss: https://discuss.huggingface.co/t/how-to-accessing-the-input-ids-in-evalprediction-predictions-in-seq2seqtrainer/25372
     include_inputs_for_metrics: Optional[bool] = field(default=False)
+    torch_empty_cache_steps: Optional[int] = field(default=None)
 
 
 def get_local_rank() -> int:
