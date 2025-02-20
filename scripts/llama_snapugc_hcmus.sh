@@ -6,7 +6,7 @@ PATH_TO_FOLDER="/raid/nthuy/SnapUGC"
 VERSION="llama3"
 
 CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=2 --rdzv_endpoint=localhost:29502 --nnodes=1 \
-    longvu/eval_llama.py \
+    longvu/finetune_llama.py \
     --output_dir "/tmp/longvu/" \
     --input_model_filename $PREV_STAGE_CHECKPOINT \
     --output_model_filename "./checkpoints/cambrian_llama3_2/" \
