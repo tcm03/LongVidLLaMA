@@ -56,9 +56,9 @@ class CambrianMetaModel:
                 query_num_list = config.query_num_list
                 connector_only = config.connector_only
                 connector_depth = config.connector_depth
-                self.vision_tower_aux_list = build_vision_tower_aux_list(
+                self.vision_tower_aux_list = nn.ModuleList(build_vision_tower_aux_list(
                     config, delay_load=True
-                )
+                ))
                 self.mm_projector = nn.Sequential(
                     nn.Linear(vision_hidden_size * num_query_group, config.hidden_size),
                     nn.GELU(),
