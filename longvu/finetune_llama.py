@@ -194,6 +194,8 @@ class TrainingArguments(transformers.TrainingArguments):
     # Discuss: https://discuss.huggingface.co/t/how-to-accessing-the-input-ids-in-evalprediction-predictions-in-seq2seqtrainer/25372
     include_inputs_for_metrics: Optional[bool] = field(default=False)
     torch_empty_cache_steps: Optional[int] = field(default=None)
+    activation_checkpointing: bool = field(default=True)
+    activation_checkpointing_kwargs={'use_reentrant': False}
 
 
 def get_local_rank() -> int:
@@ -1045,7 +1047,7 @@ def train() -> None:
         model.model.requires_grad_(False)
 
     # pyre-fixme[16]: `DataClass` has no attribute `gradient_checkpointing`.
-    if training_args.gradient_checkpointing:
+    if training_args.activation_checkpointing:
         if hasattr(model, "enable_input_require_grads"):
             model.enable_input_require_grads()
         else:

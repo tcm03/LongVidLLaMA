@@ -23,6 +23,7 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 4 \
+    --eval_accumulation_steps 30 \
     --save_steps 1250 \
     --eval_steps 500 \
     --logging_steps 10 \
@@ -48,7 +49,7 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --freeze_backbone True \
     --fsdp "full_shard auto_wrap" \
     --fsdp_transformer_layer_cls_to_wrap 'Dinov2Layer,SiglipEncoderLayer,LlamaDecoderLayer,VisionCrossAttentionLayer' \
-    --gradient_checkpointing True \
+    --activation_checkpointing True \
     --mm_projector_type sva \
     --image_token_len 144 \
     --query_num_list "[144]" \
