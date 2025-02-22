@@ -1,11 +1,11 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_llama3_2"
-PATH_TO_JSON_TRAIN="/raid/nthuy/SnapUGC/snapugc_30s_train.json"
-PATH_TO_JSON_VAL="/raid/nthuy/SnapUGC/snapugc_30s_test.json"
+PATH_TO_JSON_TRAIN="/raid/nthuy/SnapUGC/snapugc_60s_4eval_train.json"
+PATH_TO_JSON_VAL="/raid/nthuy/SnapUGC/snapugc_60s_4eval_test.json"
 PATH_TO_FOLDER="/raid/nthuy/SnapUGC"
 VERSION="llama3"
 
-CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=2 --rdzv_endpoint=localhost:29502 --nnodes=1 \
+CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=4 --rdzv_endpoint=localhost:29502 --nnodes=1 \
     longvu/finetune_llama.py \
     --output_dir "/tmp/longvu/" \
     --input_model_filename $PREV_STAGE_CHECKPOINT \
@@ -23,10 +23,10 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 4 \
-    --eval_accumulation_steps 30 \
-    --save_steps 1250 \
+    --eval_accumulation_steps 10 \
+    --save_steps 625 \
     --eval_steps 500 \
-    --logging_steps 10 \
+    --logging_steps 5 \
     --eval_strategy "epoch" \
     --save_strategy "steps" \
     --report_to "tensorboard" \
@@ -61,5 +61,4 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --label_names labels \
     --include_inputs_for_metrics True \
     --torch_empty_cache_steps 1 \
-    --save_only_model True
-    # --deepspeed ds_config_2.json
+    # --save_only_model True

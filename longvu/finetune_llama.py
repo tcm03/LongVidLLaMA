@@ -194,6 +194,7 @@ class TrainingArguments(transformers.TrainingArguments):
     # Discuss: https://discuss.huggingface.co/t/how-to-accessing-the-input-ids-in-evalprediction-predictions-in-seq2seqtrainer/25372
     include_inputs_for_metrics: Optional[bool] = field(default=False)
     torch_empty_cache_steps: Optional[int] = field(default=None)
+    eval_accumulation_steps: Optional[int] = field(default=10)
     # @tcm: Somehow I use activation_checkpointing and OOM right in the training phase! with gradient_checkpointing_kwargs and non-reentrant, still OOM during training (step 46 on snapugc_mini)
     # activation_checkpointing: bool = field(default=True)
     # gradient_checkpointing_kwargs={'use_reentrant': False}
