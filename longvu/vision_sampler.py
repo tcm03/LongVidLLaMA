@@ -5,6 +5,9 @@ import torch
 import torch.utils.checkpoint
 from torch import nn
 import logging
+from resource_logging import *
+
+tcm_logger = logging.getLogger("tcm_logger")
 
 # https://github.com/facebookresearch/mae/blob/efb2a8062c206524e35e47d04501ed4f544c0ae8/util/pos_embed.py#L20
 def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False):
