@@ -511,24 +511,35 @@ class LLaVATrainer(Trainer):
                     },
                 ]
             else:
-                optimizer_grouped_parameters = [
-                    {
-                        "params": [
-                            p
-                            for n, p in opt_model.named_parameters()
-                            if (n in decay_parameters and p.requires_grad)
-                        ],
-                        "weight_decay": self.args.weight_decay,
-                    },
-                    {
-                        "params": [
-                            p
-                            for n, p in opt_model.named_parameters()
-                            if (n not in decay_parameters and p.requires_grad)
-                        ],
-                        "weight_decay": 0.0,
-                    },
-                ]
+                # optimizer_grouped_parameters = [
+                #     {
+                #         "params": [
+                #             p
+                #             for n, p in opt_model.named_parameters()
+                #             if (n in decay_parameters and p.requires_grad)
+                #         ],
+                #         "weight_decay": self.args.weight_decay,
+                #     },
+                #     {
+                #         "params": [
+                #             p
+                #             for n, p in opt_model.named_parameters()
+                #             if (n not in decay_parameters and p.requires_grad)
+                #         ],
+                #         "weight_decay": 0.0,
+                #     },
+                # ]
+                
+                first_params_group = {"params": [], "weight_decay": self.args.weight_decay}
+                second_params_group = {"params": [], "weight_decay": 0.0}
+                for n, p in opt_model.named_parameters():
+                    if (n in decay_parameters and p.requires_grad):
+                        logging.debug(f"@tcm: In LLaVATrainer: n = {n}, p = {p}")
+                        first_params_group["params"].append(p)
+                    elif p.requires_grad:
+                        logging.debug(f"@tcm: In LLaVATrainer: n = {n}, p = {p}")
+                        second_params_group["params"].append(p)
+                optimizer_grouped_parameters = [first_params_group, second_params_group]
 
             optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(
                 self.args
