@@ -515,11 +515,16 @@ class CambrianMetaForCausalLM(ABC):
             aux_height = aux_width = int(vision_tower_aux_feature.shape[1] ** 0.5)
             assert (aux_height // query_side_len) * query_side_len == aux_height
 
+            debug_tensor("In rearrange_vision_tower_features_inference(): vision_tower_aux_feature", vision_tower_aux_feature)
+            tcm_logger.debug(f"aux_height = aux_width = {aux_height}")
+
             reduce_factor = aux_height // query_side_len
+            tcm_logger.debug(f"reduce_factor = {reduce_factor}")
 
             vision_tower_aux_feature_rearranged = []
             vision_tower_aux_attention_masks_rearranged = []
             for batch_i in range(bs):
+                tcm_logger.debug(f"batch_i = {batch_i}")
                 image_size = image_sizes[batch_i]
                 cur_vision_tower_aux_feature = vision_tower_aux_feature[batch_i]
 
@@ -550,7 +555,9 @@ class CambrianMetaForCausalLM(ABC):
                 cur_vision_tower_aux_feature_rearranged = (
                     cur_vision_tower_aux_feature_rearranged.flatten(0, 2).flatten(1, 2)
                 )  # query_side_len*query_side_len X reduce_factor*reduce_factor X C
-
+                
+                debug_tensor("cur_vision_tower_aux_feature_rearranged", cur_vision_tower_aux_feature_rearranged)
+                
                 cur_vision_tower_aux_attention_masks_rearranged = unmask_attention_mask(
                     cur_vision_tower_aux_attention_masks_rearranged, image_size
                 )
@@ -571,6 +578,8 @@ class CambrianMetaForCausalLM(ABC):
                     ).flatten(1, 2)
                 )
 
+                debug_tensor("cur_vision_tower_aux_attention_masks_rearranged", cur_vision_tower_aux_attention_masks_rearranged)
+
                 cur_vision_tower_aux_attention_masks_rearranged[
                     cur_vision_tower_aux_attention_masks_rearranged.sum(-1) == 0
                 ] = True
@@ -585,9 +594,11 @@ class CambrianMetaForCausalLM(ABC):
             vision_tower_aux_feature_rearranged = torch.cat(
                 vision_tower_aux_feature_rearranged, 0
             )
+            debug_tensor("vision_tower_aux_feature_rearranged", vision_tower_aux_feature_rearranged)
             vision_tower_aux_attention_masks_rearranged = torch.cat(
                 vision_tower_aux_attention_masks_rearranged, 0
             )
+            debug_tensor("vision_tower_aux_attention_masks_rearranged", vision_tower_aux_attention_masks_rearranged)
 
             vision_tower_aux_feature_rearranged_list.append(
                 vision_tower_aux_feature_rearranged
@@ -976,6 +987,8 @@ class CambrianMetaForCausalLM(ABC):
                             ) = self.rearrange_vision_tower_features_inference(
                                 vision_tower_aux_feature_list, query_side_len, image_sizes
                             )
+
+                        debug_tensor("query_features_i.flatten(0,1)", query_features_i.flatten(0, 1))
 
                         query_features_i = getattr(
                             self.get_model(), "vision_sampler_{}".format(query_group_i)

@@ -345,12 +345,16 @@ class VisionCrossAttentionLayer(nn.Module):
         *vision_latents_attention_mask_list,
     ) -> torch.FloatTensor:
 
+        tcm_logger.debug(f"In VisionCrossAttentionLayer.forward()")
+        debug_tensor("queries", queries)
+
         residual = queries
-        # queries = self.proj_in(queries)
-        # logging.info(f'context_feature.dtype = {context_feature.dtype}, self.proj_context.dtype = {next(self.proj_context.parameters()).dtype}')
+        # queries = self.proj_in(queries)        
         context_feature = self.proj_context(context_feature)
+        debug_tensor("context_feature (after proj_context)", context_feature)
         # queries = queries + context_feature
         queries = torch.cat([queries, context_feature], -1)
+        debug_tensor("queries (after concat with context_feature)", queries)
 
         # if self.num_of_kvs > 1:
         #     kv_weight = self.weight_mlp(queries) # B * 1 * num_tower
@@ -362,6 +366,7 @@ class VisionCrossAttentionLayer(nn.Module):
         #     kv_weight = None
 
         queries = self.proj_in(queries)
+        debug_tensor("queries (after proj_in)", queries)
 
         vision_latents_list = vision_latents_attention_mask_list[: self.num_of_kvs]
         attention_mask_list = vision_latents_attention_mask_list[self.num_of_kvs :]
@@ -371,10 +376,12 @@ class VisionCrossAttentionLayer(nn.Module):
             for attention_mask in attention_mask_list:
                 attention_mask = attention_mask.view(attention_mask.shape[0], 1, 1, -1)
                 attention_mask = attention_mask.expand(-1, -1, queries.shape[1], -1)
+                debug_tensor("attention_mask_reshaped", attention_mask)
                 attention_mask_list_reshaped.append(attention_mask)
 
         vision_latents_pos_list = []
         for i, vision_latents in enumerate(vision_latents_list):
+            debug_tensor(f"vision_latents_list[{i}]", vision_latents)
             if vision_latents.shape[1] > 1:
                 vision_latents_pos_list.append(
                     vision_latents
@@ -389,6 +396,7 @@ class VisionCrossAttentionLayer(nn.Module):
         attention_output = self.cross_attn(
             queries, *vision_latents_pos_list, *attention_mask_list_reshaped
         )
+        debug_tensor("attention_output", attention_output)
 
         # attention_output = (attention_output * combination_weight).sum(2)
         queries = queries + attention_output
@@ -396,6 +404,7 @@ class VisionCrossAttentionLayer(nn.Module):
         queries = self.norm(queries)
 
         queries = self.proj_out(queries)
+        debug_tensor("queries (after proj_out)", queries)
 
         queries = queries + residual
 

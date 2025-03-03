@@ -44,7 +44,7 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --dataloader_num_workers 0 \
     --lazy_preprocess True \
     --tune_mm_mlp_adapter False \
-    --freeze_mm_mlp_adapter False \
+    --freeze_mm_mlp_adapter True \
     --freeze_backbone True \
     --fsdp "full_shard auto_wrap" \
     --fsdp_transformer_layer_cls_to_wrap 'Dinov2Layer,SiglipEncoderLayer,LlamaDecoderLayer' \
