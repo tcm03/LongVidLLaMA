@@ -92,12 +92,12 @@ tcm_logger.addHandler(file_handler)
 # Prevent log propagation to the root logger
 tcm_logger.propagate = False
 
-hf_logger = hf_logging.get_logger("transformers")
-hf_logger.setLevel(logging.INFO)  # Ensure it logs debug messages
-
-# Attach the same file handler to Hugging Face's logger
-hf_logger.addHandler(file_handler)
-hf_logger.propagate = False  # Prevent duplicate logs
+#hf_logger = hf_logging.get_logger("transformers")
+#hf_logger.setLevel(logging.INFO)  # Ensure it logs debug messages
+#
+## Attach the same file handler to Hugging Face's logger
+#hf_logger.addHandler(file_handler)
+#hf_logger.propagate = False  # Prevent duplicate logs
 
 ##### DONE LOGGING CONFIGURATION ####
 from longvu.resource_logging import *
@@ -194,7 +194,7 @@ class TrainingArguments(transformers.TrainingArguments):
     # Discuss: https://discuss.huggingface.co/t/how-to-accessing-the-input-ids-in-evalprediction-predictions-in-seq2seqtrainer/25372
     include_inputs_for_metrics: Optional[bool] = field(default=False)
     torch_empty_cache_steps: Optional[int] = field(default=None)
-    eval_accumulation_steps: Optional[int] = field(default=10)
+    eval_accumulation_steps: Optional[int] = field(default=2)
     # @tcm: Somehow I use activation_checkpointing and OOM right in the training phase! with gradient_checkpointing_kwargs and non-reentrant, still OOM during training (step 46 on snapugc_mini)
     # activation_checkpointing: bool = field(default=True)
     # gradient_checkpointing_kwargs={'use_reentrant': False}
@@ -454,7 +454,8 @@ def prepare_multimodal_data(
     )
 
 
-def compute_metrics(eval_pred, tokenizer):
+# def compute_metrics(eval_pred, tokenizer):
+def compute_metrics(eval_pred):
     """
     Computes accuracy, precision, recall, and F1-score for the sequence classification task.
 
@@ -465,75 +466,78 @@ def compute_metrics(eval_pred, tokenizer):
     dict: A dictionary with metric names as keys and their values.
     """
 
-    preds = torch.from_numpy(eval_pred.predictions)
-    labels = torch.from_numpy(eval_pred.label_ids)
-    inputs = eval_pred.inputs
-    masks = eval_pred.masks
-    tcm_logger.info("In compute_metrics()")
-    for i, input in enumerate(inputs):
-        debug_tensor(f"inputs[{i}]", input)
-    for i, mask in enumerate(masks):
-        debug_tensor(f"masks[{i}]", mask)
-    attention_mask = torch.stack([torch.from_numpy(mask) for mask in masks], dim = 0)
-    input_ids = torch.stack([torch.from_numpy(input) for input in inputs], dim = 0)
-    debug_tensor("preds", preds)
-    debug_tensor("labels", labels)
-    debug_tensor("attention_mask", attention_mask)
-    debug_tensor("input_ids", input_ids)
-
-    attention_mask = attention_mask.bool()
-    attention_mask = attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
-    labels = [
-        cur_labels[cur_attention_mask]
-        for cur_labels, cur_attention_mask in zip(labels, attention_mask)
-    ]
-    labels = pad_sequence(labels, batch_first = True, padding_value = IGNORE_INDEX)
-
-    assert preds.shape[0] == labels.shape[0], "batch size must be the same"
-    batch_size = labels.shape[0]
-    pred_labels = []
-    gold_labels = []
-    for i in range(batch_size):
-        output_range = [-1, -1]
-        for j in range(labels.shape[1]):
-            if labels[i, j] == 78191:
-                assert labels[i, j-1] == 128006 and labels[i, j+1] == 128007, "assistant token must be surrounded by start and end tokens"
-                output_range[0] = j+1
-        for j in range(output_range[0], labels.shape[1]):
-            if labels[i, j] == 128009:
-                output_range[1] = j
-                break
-        tcm_logger.debug(f"batch {i}: output_range={output_range}")
-        cur_logits = preds[i, output_range[0]:output_range[1], :].unsqueeze(0)
-        cur_outputs = cur_logits.argmax(dim = -1)
-        tcm_logger.debug(f"batch {i}: cur_outputs={cur_outputs}")
-        cur_labels = labels[i, output_range[0]:output_range[1]].unsqueeze(0)
-        decoded_outputs = tokenizer.batch_decode(cur_outputs, skip_special_tokens=True)
-        tcm_logger.debug(f"batch {i}: decoded_outputs={decoded_outputs}")
-        decoded_labels = tokenizer.batch_decode(cur_labels, skip_special_tokens=True)
-        tcm_logger.debug(f"batch {i}: decoded_labels={decoded_labels}")
-        pred_label = extract_engagement_label(decoded_outputs[0])
-        gold_label = extract_engagement_label(decoded_labels[0])
-        pred_labels.append(pred_label)
-        gold_labels.append(gold_label)
-
-    # # Get predicted class by taking the argmax of logits
-    # predictions = logits.argmax(axis=-1)
-    # logging.info(f'predictions={predictions}')
-    tcm_logger.debug(f"pred_labels={pred_labels}")
-    tcm_logger.debug(f"gold_labels={gold_labels}")
-    # Compute accuracy
-    acc = accuracy_score(gold_labels, pred_labels)
-    
-    # Compute precision, recall, and F1-score
-    precision, recall, f1, _ = precision_recall_fscore_support(gold_labels, pred_labels, average='weighted')
-    
-    # Return metrics as a dictionary
+#    preds = torch.from_numpy(eval_pred.predictions)
+#    labels = torch.from_numpy(eval_pred.label_ids)
+#    inputs = eval_pred.inputs
+#    masks = eval_pred.masks
+#    tcm_logger.info("In compute_metrics()")
+#    for i, input in enumerate(inputs):
+#        debug_tensor(f"inputs[{i}]", input)
+#    for i, mask in enumerate(masks):
+#        debug_tensor(f"masks[{i}]", mask)
+#    attention_mask = torch.stack([torch.from_numpy(mask) for mask in masks], dim = 0)
+#    input_ids = torch.stack([torch.from_numpy(input) for input in inputs], dim = 0)
+#    debug_tensor("preds", preds)
+#    debug_tensor("labels", labels)
+#    debug_tensor("attention_mask", attention_mask)
+#    debug_tensor("input_ids", input_ids)
+#
+#    attention_mask = attention_mask.bool()
+#    attention_mask = attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
+#    labels = [
+#        cur_labels[cur_attention_mask]
+#        for cur_labels, cur_attention_mask in zip(labels, attention_mask)
+#    ]
+#    labels = pad_sequence(labels, batch_first = True, padding_value = IGNORE_INDEX)
+#
+#    assert preds.shape[0] == labels.shape[0], "batch size must be the same"
+#    batch_size = labels.shape[0]
+#    pred_labels = []
+#    gold_labels = []
+#    for i in range(batch_size):
+#        output_range = [-1, -1]
+#        for j in range(labels.shape[1]):
+#            if labels[i, j] == 78191:
+#                assert labels[i, j-1] == 128006 and labels[i, j+1] == 128007, "assistant token must be surrounded by start and end tokens"
+#                output_range[0] = j+1
+#        for j in range(output_range[0], labels.shape[1]):
+#            if labels[i, j] == 128009:
+#                output_range[1] = j
+#                break
+#        tcm_logger.debug(f"batch {i}: output_range={output_range}")
+#        cur_logits = preds[i, output_range[0]:output_range[1], :].unsqueeze(0)
+#        cur_outputs = cur_logits.argmax(dim = -1)
+#        tcm_logger.debug(f"batch {i}: cur_outputs={cur_outputs}")
+#        cur_labels = labels[i, output_range[0]:output_range[1]].unsqueeze(0)
+#        decoded_outputs = tokenizer.batch_decode(cur_outputs, skip_special_tokens=True)
+#        tcm_logger.debug(f"batch {i}: decoded_outputs={decoded_outputs}")
+#        decoded_labels = tokenizer.batch_decode(cur_labels, skip_special_tokens=True)
+#        tcm_logger.debug(f"batch {i}: decoded_labels={decoded_labels}")
+#        pred_label = extract_engagement_label(decoded_outputs[0])
+#        gold_label = extract_engagement_label(decoded_labels[0])
+#        pred_labels.append(pred_label)
+#        gold_labels.append(gold_label)
+#
+#    # # Get predicted class by taking the argmax of logits
+#    # predictions = logits.argmax(axis=-1)
+#    # logging.info(f'predictions={predictions}')
+#    tcm_logger.debug(f"pred_labels={pred_labels}")
+#    tcm_logger.debug(f"gold_labels={gold_labels}")
+#    # Compute accuracy
+#    acc = accuracy_score(gold_labels, pred_labels)
+#    
+#    # Compute precision, recall, and F1-score
+#    precision, recall, f1, _ = precision_recall_fscore_support(gold_labels, pred_labels, average='weighted')
+#    
+#    # Return metrics as a dictionary
+#    return {
+#        "accuracy": acc,
+#        "precision": precision,
+#        "recall": recall,
+#        "f1": f1
+#    }
     return {
-        "accuracy": acc,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1
+        "accuracy": 0.0
     }
 
 class LazySupervisedDataset(Dataset):
@@ -675,6 +679,7 @@ class LazySupervisedDataset(Dataset):
                                 )
                             image_size = image[0].size
                         else:
+                            tcm_logger.info(f"@tcm: In LazySupervisedDataset: video_file={video_file}")
                             vr = VideoReader(video_file, ctx=cpu(0), num_threads=1)
                             sample_fps = round(
                                 vr.get_avg_fps() / self.data_args.video_fps
@@ -1295,7 +1300,8 @@ def train() -> None:
         model=model,
         tokenizer=tokenizer,
         args=training_args,
-        compute_metrics=compute_metrics_wTokenizer,
+        # compute_metrics=compute_metrics_wTokenizer,
+        compute_metrics=compute_metrics,
         callbacks=callbacks,
         # deepspeed=training_args.deepspeed,
         **data_module,

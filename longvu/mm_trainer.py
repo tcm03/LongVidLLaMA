@@ -596,408 +596,408 @@ class LLaVATrainer(Trainer):
             # pyre-fixme[16]: `Trainer` has no attribute `_save`.
             super(LLaVATrainer, self)._save(output_dir, state_dict)
 
-    def compute_loss(self, model, inputs, return_outputs=False):
-        """
-        How the loss is computed by Trainer. By default, all models return the loss in the first element.
-
-        Subclass and override for custom behavior.
-        """
-        if "labels" in inputs and isinstance(inputs["labels"], torch.Tensor):
-            tmp_labels = copy.deepcopy(inputs["labels"])
-            debug_tensor("In compute_loss(): inputs['labels']", tmp_labels)
-            if "input_ids" in inputs and "attention_mask" in inputs and isinstance(inputs["attention_mask"], torch.Tensor):
-                tmp_attention_mask = copy.deepcopy(inputs["attention_mask"])
-                tmp_attention_mask = tmp_attention_mask.bool()
-                tmp_attention_mask = tmp_attention_mask | (inputs["input_ids"] == IMAGE_TOKEN_INDEX)
-                tmp_labels = [
-                    cur_labels[cur_attention_mask]
-                    for cur_labels, cur_attention_mask in zip(tmp_labels, tmp_attention_mask)
-                ]
-                tmp_labels = torch.stack(tmp_labels)
-                for i in range(tmp_labels.shape[1]):
-                    if tmp_labels[0, i] == 78191:
-                        tcm_logger.debug(f"In compute_loss(): assistant token at position {i}")
-                        break
-                
-        if self.label_smoother is not None and "labels" in inputs:
-            labels = inputs.pop("labels")
-        else:
-            labels = None
-
-        outputs = model(**inputs)
-
-        # assert (isinstance(outputs, tuple) and len(outputs) == 2) or isinstance(outputs, CausalLMOutputWithPast), '@tcm: Expected: CausalLMOutputWithPast or tuple(loss, logits tensor)'
-        # if isinstance(outputs, tuple):
-        #     logits = outputs[1]
-        #     loss_val = outputs[0]
-        # else:
-        #     logits = outputs.logits
-        #     loss_val = outputs.loss
-        #     # outputs.hidden_states: None
-        #     # outputs.attentions: None
-            
-        # output_ids = logits.argmax(dim=-1)
-        # # output_ids: [torch.Size([1, 5361]), torch.int64, cuda:1]
-        # debug_tensor("In mm_trainer.py: output_ids", output_ids)
-        # assert len(output_ids) == len(inputs['input_ids']), 'Same batch size required'
-        # decoded_outputs = self.tokenizer.batch_decode(output_ids[..., :min(100, output_ids.shape[-1])], skip_special_tokens=True)
-        # tcm_logger.debug(f'In mm_trainer.py: decoded_outputs={decoded_outputs}')    
-        
-        # Save past state if it exists
-        # TODO: this needs to be fixed and made cleaner later.
-        if self.args.past_index >= 0:
-            self._past = outputs[self.args.past_index]
-
-        if labels is not None:
-            unwrapped_model = self.accelerator.unwrap_model(model)
-            if _is_peft_model(unwrapped_model):
-                model_name = unwrapped_model.base_model.model._get_name()
-            else:
-                model_name = unwrapped_model._get_name()
-            if model_name in MODEL_FOR_CAUSAL_LM_MAPPING_NAMES.values():
-                loss = self.label_smoother(outputs, labels, shift_labels=True)
-            else:
-                loss = self.label_smoother(outputs, labels)
-        else:
-            if isinstance(outputs, dict) and "loss" not in outputs:
-                raise ValueError(
-                    "The model did not return a loss from the inputs, only the following keys: "
-                    f"{','.join(outputs.keys())}. For reference, the inputs it received are {','.join(inputs.keys())}."
-                )
-            # We don't use .loss here since the model may return tuples instead of ModelOutput.
-            loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
-
-        return (loss, outputs) if return_outputs else loss
-
-    def evaluation_loop(
-        self,
-        dataloader: DataLoader,
-        description: str,
-        prediction_loss_only: Optional[bool] = None,
-        ignore_keys: Optional[List[str]] = None,
-        metric_key_prefix: str = "eval",
-    ) -> EvalLoopOutput:
-        """
-        Prediction/evaluation loop, shared by `Trainer.evaluate()` and `Trainer.predict()`.
-
-        Works both with or without labels.
-        """
-        args = self.args
-
-        prediction_loss_only = prediction_loss_only if prediction_loss_only is not None else args.prediction_loss_only
-
-        # if eval is called w/o train, handle model prep here
-        if self.is_deepspeed_enabled and self.deepspeed is None:
-            _, _ = deepspeed_init(self, num_training_steps=0, inference=True)
-
-        model = self._wrap_model(self.model, training=False, dataloader=dataloader)
-
-        if len(self.accelerator._models) == 0 and model is self.model:
-            start_time = time.time()
-            model = (
-                self.accelerator.prepare(model)
-                if self.is_deepspeed_enabled
-                else self.accelerator.prepare_model(model, evaluation_mode=True)
-            )
-            self.model_preparation_time = round(time.time() - start_time, 4)
-
-            if self.is_fsdp_enabled:
-                self.model = model
-
-            # for the rest of this function `model` is the outside model, whether it was wrapped or not
-            if model is not self.model:
-                self.model_wrapped = model
-
-            # backward compatibility
-            if self.is_deepspeed_enabled:
-                self.deepspeed = self.model_wrapped
-
-        # if full fp16 or bf16 eval is wanted and this ``evaluation`` or ``predict`` isn't called
-        # while ``train`` is running, cast it to the right dtype first and then put on device
-        if not self.is_in_train:
-            if args.fp16_full_eval:
-                model = model.to(dtype=torch.float16, device=args.device)
-            elif args.bf16_full_eval:
-                model = model.to(dtype=torch.bfloat16, device=args.device)
-
-        batch_size = self.args.eval_batch_size
-
-        logger.info(f"\n***** Running {description} *****")
-        if has_length(dataloader):
-            logger.info(f"  Num examples = {self.num_examples(dataloader)}")
-        else:
-            logger.info("  Num examples: Unknown")
-        logger.info(f"  Batch size = {batch_size}")
-
-        model.eval()
-
-        self.callback_handler.eval_dataloader = dataloader
-        # Do this before wrapping.
-        eval_dataset = getattr(dataloader, "dataset", None)
-
-        if args.past_index >= 0:
-            self._past = None
-
-        # Initialize containers
-        all_losses = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
-        all_preds = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
-        all_labels = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
-        all_inputs = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
-        all_masks = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
-
-        metrics = None
-
-        # Will be useful when we have an iterable dataset so don't know its length.
-        observed_num_examples = 0
-
-        # Main evaluation loop
-        for step, inputs in enumerate(dataloader):
-            # Update the observed num examples
-            observed_batch_size = find_batch_size(inputs)
-            if observed_batch_size is not None:
-                observed_num_examples += observed_batch_size
-                # For batch samplers, batch_size is not known by the dataloader in advance.
-                if batch_size is None:
-                    batch_size = observed_batch_size
-
-            # Prediction step
-            losses, logits, labels = self.prediction_step(model, inputs, prediction_loss_only, ignore_keys=ignore_keys)
-            debug_tensor("After prediction_step: logits", logits)
-            debug_tensor("After prediction_step: labels", labels)
-            main_input_name = getattr(self.model, "main_input_name", "input_ids")
-            tcm_logger.debug(f"main_input_name: {main_input_name}")
-            if isinstance(inputs[main_input_name], torch.Tensor):
-                debug_tensor(f"In evaluation_loop(): inputs['{main_input_name}']", inputs[main_input_name])
-            debug_tensor(f"In evaluation_loop(): inputs['attention_mask']", inputs['attention_mask'])
-            inputs_decode = self._prepare_input(inputs[main_input_name]) if args.include_inputs_for_metrics else None
-            inputs_mask = self._prepare_input(inputs['attention_mask']) if args.include_inputs_for_metrics else None
-            tcm_logger.debug(f"type(inputs_decode): {type(inputs_decode)}")
-            if isinstance(inputs_decode, torch.Tensor):
-                debug_tensor(f"In evaluation_loop(): inputs_decode", inputs_decode)
-
-            # if is_torch_xla_available():
-            #     xm.mark_step()
-
-            # Update containers
-            if losses is not None:
-                losses = self.gather_function((losses.repeat(batch_size)))
-                all_losses.add(losses)
-            if inputs_decode is not None:
-                inputs_decode = self.accelerator.pad_across_processes(inputs_decode, dim=1, pad_index=-100)
-                inputs_decode = self.gather_function((inputs_decode))
-                if not self.args.batch_eval_metrics or description == "Prediction":
-                    all_inputs.add(inputs_decode)
-            if inputs_mask is not None:
-                inputs_mask = self.accelerator.pad_across_processes(inputs_mask, dim=1, pad_index=0)
-                inputs_mask = self.gather_function((inputs_mask))
-                if not self.args.batch_eval_metrics or description == "Prediction":
-                    all_masks.add(inputs_mask)
-            if labels is not None:
-                # Pad labels here, preparing for preprocess_logits_for_metrics in next logits block.
-                labels = self.accelerator.pad_across_processes(labels, dim=1, pad_index=-100)
-            if logits is not None:
-                debug_tensor("Before accelerator.pad_across_processes: logits", logits)
-                logits = self.accelerator.pad_across_processes(logits, dim=1, pad_index=-100)
-                if self.preprocess_logits_for_metrics is not None:
-                    logits = self.preprocess_logits_for_metrics(logits, labels)
-                debug_tensor("Before gather_function: logits", logits)
-                logits = self.gather_function((logits))
-                if not self.args.batch_eval_metrics or description == "Prediction":
-                    debug_tensor("Add to all_preds: logits", logits)
-                    all_preds.add(logits)
-            if labels is not None:
-                labels = self.gather_function((labels))
-                if not self.args.batch_eval_metrics or description == "Prediction":
-                    debug_tensor("Add to all_preds: labels", labels)
-                    all_labels.add(labels)
-
-            self.control = self.callback_handler.on_prediction_step(args, self.state, self.control)
-
-            if self.args.batch_eval_metrics:
-                if self.compute_metrics is not None and logits is not None and labels is not None:
-                    is_last_step = self.accelerator.gradient_state.end_of_dataloader
-                    if args.include_inputs_for_metrics:
-                        metrics = self.compute_metrics(
-                            EvalPredictionWithMask(predictions=logits, label_ids=labels, inputs=inputs),
-                            compute_result=is_last_step,
-                        )
-                    else:
-                        metrics = self.compute_metrics(
-                            EvalPredictionWithMask(predictions=logits, label_ids=labels),
-                            compute_result=is_last_step,
-                        )
-
-                del losses, logits, labels, inputs
-                torch.cuda.empty_cache()
-
-            # Gather all tensors and put them back on the CPU if we have done enough accumulation steps.
-            elif args.eval_accumulation_steps is not None and (step + 1) % args.eval_accumulation_steps == 0:
-                all_losses.to_cpu_and_numpy()
-                all_preds.to_cpu_and_numpy()
-                all_labels.to_cpu_and_numpy()
-                all_inputs.to_cpu_and_numpy()
-                all_masks.to_cpu_and_numpy()
-
-                del losses, logits, labels, inputs
-                torch.cuda.empty_cache()
-
-        # After all calls to `.gather_function`, reset to `gather_for_metrics`:
-        self.gather_function = self.accelerator.gather_for_metrics
-        if args.past_index and hasattr(self, "_past"):
-            # Clean the state at the end of the evaluation loop
-            delattr(self, "_past")
-
-        # Gather all remaining tensors and put them back on the CPU
-        all_losses = all_losses.get_arrays()
-        all_preds = all_preds.get_arrays()
-        all_labels = all_labels.get_arrays()
-        all_inputs = all_inputs.get_arrays()
-        all_masks = all_masks.get_arrays()
-
-        # Number of samples
-        if has_length(eval_dataset):
-            num_samples = len(eval_dataset)
-        # The instance check is weird and does not actually check for the type, but whether the dataset has the right
-        # methods. Therefore we need to make sure it also has the attribute.
-        elif isinstance(eval_dataset, IterableDatasetShard) and getattr(eval_dataset, "num_examples", 0) > 0:
-            num_samples = eval_dataset.num_examples
-        else:
-            if has_length(dataloader):
-                num_samples = self.num_examples(dataloader)
-            else:  # both len(dataloader.dataset) and len(dataloader) fail
-                num_samples = observed_num_examples
-        if num_samples == 0 and observed_num_examples > 0:
-            num_samples = observed_num_examples
-
-        # Metrics!
-        if (
-            self.compute_metrics is not None
-            and all_preds is not None
-            and all_labels is not None
-            and not self.args.batch_eval_metrics
-        ):
-            if args.include_inputs_for_metrics:
-                metrics = self.compute_metrics(
-                    EvalPredictionWithMask(predictions=all_preds, label_ids=all_labels, inputs=all_inputs, masks=all_masks)
-                )
-            else:
-                metrics = self.compute_metrics(EvalPredictionWithMask(predictions=all_preds, label_ids=all_labels))
-        elif metrics is None:
-            metrics = {}
-
-        # To be JSON-serializable, we need to remove numpy types or zero-d tensors
-        metrics = denumpify_detensorize(metrics)
-
-        if isinstance(all_losses, list) and all_losses:
-            metrics[f"{metric_key_prefix}_loss"] = np.concatenate(all_losses).mean().item()
-        elif isinstance(all_losses, np.ndarray):
-            metrics[f"{metric_key_prefix}_loss"] = all_losses.mean().item()
-        if hasattr(self, "jit_compilation_time"):
-            metrics[f"{metric_key_prefix}_jit_compilation_time"] = self.jit_compilation_time
-        if hasattr(self, "model_preparation_time"):
-            metrics[f"{metric_key_prefix}_model_preparation_time"] = self.model_preparation_time
-
-        # Prefix all keys with metric_key_prefix + '_'
-        for key in list(metrics.keys()):
-            if not key.startswith(f"{metric_key_prefix}_"):
-                metrics[f"{metric_key_prefix}_{key}"] = metrics.pop(key)
-
-        return EvalLoopOutput(predictions=all_preds, label_ids=all_labels, metrics=metrics, num_samples=num_samples)
-
-    def prediction_step(
-        self,
-        model: nn.Module,
-        inputs: Dict[str, Union[torch.Tensor, Any]],
-        prediction_loss_only: bool,
-        ignore_keys: Optional[List[str]] = None,
-    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
-
-        """
-        Perform an evaluation step on `model` using `inputs`.
-
-        Subclass and override to inject custom behavior.
-
-        Args:
-            model (`nn.Module`):
-                The model to evaluate.
-            inputs (`Dict[str, Union[torch.Tensor, Any]]`):
-                The inputs and targets of the model.
-
-                The dictionary will be unpacked before being fed to the model. Most models expect the targets under the
-                argument `labels`. Check your model's documentation for all accepted arguments.
-            prediction_loss_only (`bool`):
-                Whether or not to return the loss only.
-            ignore_keys (`List[str]`, *optional*):
-                A list of keys in the output of your model (if it is a dictionary) that should be ignored when
-                gathering predictions.
-
-        Return:
-            Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]: A tuple with the loss,
-            logits and labels (each being optional).
-        """
-        has_labels = False if len(self.label_names) == 0 else all(inputs.get(k) is not None for k in self.label_names)
-        # For CLIP-like models capable of returning loss values.
-        # If `return_loss` is not specified or being `None` in `inputs`, we check if the default value of `return_loss`
-        # is `True` in `model.forward`.
-        return_loss = inputs.get("return_loss", None)
-        if return_loss is None:
-            return_loss = self.can_return_loss
-        loss_without_labels = True if len(self.label_names) == 0 and return_loss else False
-
-        inputs = self._prepare_inputs(inputs)
-        if ignore_keys is None:
-            if hasattr(self.model, "config"):
-                ignore_keys = getattr(self.model.config, "keys_to_ignore_at_inference", [])
-            else:
-                ignore_keys = []
-
-        # labels may be popped when computing the loss (label smoothing for instance) so we grab them first.
-        if has_labels or loss_without_labels:
-            labels = nested_detach(tuple(inputs.get(name) for name in self.label_names))
-            if len(labels) == 1:
-                labels = labels[0]
-        else:
-            labels = None
-
-        with torch.no_grad():
-            if False:
-                pass
-            else:
-                if has_labels or loss_without_labels:
-                    with self.compute_loss_context_manager():
-                        loss, outputs = self.compute_loss(model, inputs, return_outputs=True)
-                    loss = loss.mean().detach()
-
-                    if isinstance(outputs, dict):
-                        logits = tuple(v for k, v in outputs.items() if k not in ignore_keys + ["loss"])
-                    else:
-                        logits = outputs[1:]
-                else:
-                    loss = None
-                    with self.compute_loss_context_manager():
-                        outputs = model(**inputs)
-                    if isinstance(outputs, dict):
-                        logits = tuple(v for k, v in outputs.items() if k not in ignore_keys)
-                    else:
-                        logits = outputs
-                    # TODO: this needs to be fixed and made cleaner later.
-                    if self.args.past_index >= 0:
-                        self._past = outputs[self.args.past_index - 1]
-
-        if prediction_loss_only:
-            return (loss, None, None)
-
-        logits = nested_detach(logits)
-        if len(logits) == 1:
-            logits = logits[0]
-        debug_tensor("In prediction_step: logits", logits)
-        debug_tensor("In prediction_step: labels", labels)
-        for i in range(labels.shape[1]):
-            if labels[0, i] == 78191:
-                tcm_logger.debug(f"Assistant token at position {i}")
-                break
-
-        return (loss, logits, labels)
+#    def compute_loss(self, model, inputs, return_outputs=False):
+#        """
+#        How the loss is computed by Trainer. By default, all models return the loss in the first element.
+#
+#        Subclass and override for custom behavior.
+#        """
+#        if "labels" in inputs and isinstance(inputs["labels"], torch.Tensor):
+#            tmp_labels = copy.deepcopy(inputs["labels"])
+#            debug_tensor("In compute_loss(): inputs['labels']", tmp_labels)
+#            if "input_ids" in inputs and "attention_mask" in inputs and isinstance(inputs["attention_mask"], torch.Tensor):
+#                tmp_attention_mask = copy.deepcopy(inputs["attention_mask"])
+#                tmp_attention_mask = tmp_attention_mask.bool()
+#                tmp_attention_mask = tmp_attention_mask | (inputs["input_ids"] == IMAGE_TOKEN_INDEX)
+#                tmp_labels = [
+#                    cur_labels[cur_attention_mask]
+#                    for cur_labels, cur_attention_mask in zip(tmp_labels, tmp_attention_mask)
+#                ]
+#                tmp_labels = torch.stack(tmp_labels)
+#                for i in range(tmp_labels.shape[1]):
+#                    if tmp_labels[0, i] == 78191:
+#                        tcm_logger.debug(f"In compute_loss(): assistant token at position {i}")
+#                        break
+#                
+#        if self.label_smoother is not None and "labels" in inputs:
+#            labels = inputs.pop("labels")
+#        else:
+#            labels = None
+#
+#        outputs = model(**inputs)
+#
+#        # assert (isinstance(outputs, tuple) and len(outputs) == 2) or isinstance(outputs, CausalLMOutputWithPast), '@tcm: Expected: CausalLMOutputWithPast or tuple(loss, logits tensor)'
+#        # if isinstance(outputs, tuple):
+#        #     logits = outputs[1]
+#        #     loss_val = outputs[0]
+#        # else:
+#        #     logits = outputs.logits
+#        #     loss_val = outputs.loss
+#        #     # outputs.hidden_states: None
+#        #     # outputs.attentions: None
+#            
+#        # output_ids = logits.argmax(dim=-1)
+#        # # output_ids: [torch.Size([1, 5361]), torch.int64, cuda:1]
+#        # debug_tensor("In mm_trainer.py: output_ids", output_ids)
+#        # assert len(output_ids) == len(inputs['input_ids']), 'Same batch size required'
+#        # decoded_outputs = self.tokenizer.batch_decode(output_ids[..., :min(100, output_ids.shape[-1])], skip_special_tokens=True)
+#        # tcm_logger.debug(f'In mm_trainer.py: decoded_outputs={decoded_outputs}')    
+#        
+#        # Save past state if it exists
+#        # TODO: this needs to be fixed and made cleaner later.
+#        if self.args.past_index >= 0:
+#            self._past = outputs[self.args.past_index]
+#
+#        if labels is not None:
+#            unwrapped_model = self.accelerator.unwrap_model(model)
+#            if _is_peft_model(unwrapped_model):
+#                model_name = unwrapped_model.base_model.model._get_name()
+#            else:
+#                model_name = unwrapped_model._get_name()
+#            if model_name in MODEL_FOR_CAUSAL_LM_MAPPING_NAMES.values():
+#                loss = self.label_smoother(outputs, labels, shift_labels=True)
+#            else:
+#                loss = self.label_smoother(outputs, labels)
+#        else:
+#            if isinstance(outputs, dict) and "loss" not in outputs:
+#                raise ValueError(
+#                    "The model did not return a loss from the inputs, only the following keys: "
+#                    f"{','.join(outputs.keys())}. For reference, the inputs it received are {','.join(inputs.keys())}."
+#                )
+#            # We don't use .loss here since the model may return tuples instead of ModelOutput.
+#            loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
+#
+#        return (loss, outputs) if return_outputs else loss
+#
+#    def evaluation_loop(
+#        self,
+#        dataloader: DataLoader,
+#        description: str,
+#        prediction_loss_only: Optional[bool] = None,
+#        ignore_keys: Optional[List[str]] = None,
+#        metric_key_prefix: str = "eval",
+#    ) -> EvalLoopOutput:
+#        """
+#        Prediction/evaluation loop, shared by `Trainer.evaluate()` and `Trainer.predict()`.
+#
+#        Works both with or without labels.
+#        """
+#        args = self.args
+#
+#        prediction_loss_only = prediction_loss_only if prediction_loss_only is not None else args.prediction_loss_only
+#
+#        # if eval is called w/o train, handle model prep here
+#        if self.is_deepspeed_enabled and self.deepspeed is None:
+#            _, _ = deepspeed_init(self, num_training_steps=0, inference=True)
+#
+#        model = self._wrap_model(self.model, training=False, dataloader=dataloader)
+#
+#        if len(self.accelerator._models) == 0 and model is self.model:
+#            start_time = time.time()
+#            model = (
+#                self.accelerator.prepare(model)
+#                if self.is_deepspeed_enabled
+#                else self.accelerator.prepare_model(model, evaluation_mode=True)
+#            )
+#            self.model_preparation_time = round(time.time() - start_time, 4)
+#
+#            if self.is_fsdp_enabled:
+#                self.model = model
+#
+#            # for the rest of this function `model` is the outside model, whether it was wrapped or not
+#            if model is not self.model:
+#                self.model_wrapped = model
+#
+#            # backward compatibility
+#            if self.is_deepspeed_enabled:
+#                self.deepspeed = self.model_wrapped
+#
+#        # if full fp16 or bf16 eval is wanted and this ``evaluation`` or ``predict`` isn't called
+#        # while ``train`` is running, cast it to the right dtype first and then put on device
+#        if not self.is_in_train:
+#            if args.fp16_full_eval:
+#                model = model.to(dtype=torch.float16, device=args.device)
+#            elif args.bf16_full_eval:
+#                model = model.to(dtype=torch.bfloat16, device=args.device)
+#
+#        batch_size = self.args.eval_batch_size
+#
+#        logger.info(f"\n***** Running {description} *****")
+#        if has_length(dataloader):
+#            logger.info(f"  Num examples = {self.num_examples(dataloader)}")
+#        else:
+#            logger.info("  Num examples: Unknown")
+#        logger.info(f"  Batch size = {batch_size}")
+#
+#        model.eval()
+#
+#        self.callback_handler.eval_dataloader = dataloader
+#        # Do this before wrapping.
+#        eval_dataset = getattr(dataloader, "dataset", None)
+#
+#        if args.past_index >= 0:
+#            self._past = None
+#
+#        # Initialize containers
+#        all_losses = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
+#        all_preds = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
+#        all_labels = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
+#        all_inputs = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
+#        all_masks = EvalLoopContainer(self.args.eval_do_concat_batches, padding_index=-100)
+#
+#        metrics = None
+#
+#        # Will be useful when we have an iterable dataset so don't know its length.
+#        observed_num_examples = 0
+#
+#        # Main evaluation loop
+#        for step, inputs in enumerate(dataloader):
+#            # Update the observed num examples
+#            observed_batch_size = find_batch_size(inputs)
+#            if observed_batch_size is not None:
+#                observed_num_examples += observed_batch_size
+#                # For batch samplers, batch_size is not known by the dataloader in advance.
+#                if batch_size is None:
+#                    batch_size = observed_batch_size
+#
+#            # Prediction step
+#            losses, logits, labels = self.prediction_step(model, inputs, prediction_loss_only, ignore_keys=ignore_keys)
+#            debug_tensor("After prediction_step: logits", logits)
+#            debug_tensor("After prediction_step: labels", labels)
+#            main_input_name = getattr(self.model, "main_input_name", "input_ids")
+#            tcm_logger.debug(f"main_input_name: {main_input_name}")
+#            if isinstance(inputs[main_input_name], torch.Tensor):
+#                debug_tensor(f"In evaluation_loop(): inputs['{main_input_name}']", inputs[main_input_name])
+#            debug_tensor(f"In evaluation_loop(): inputs['attention_mask']", inputs['attention_mask'])
+#            inputs_decode = self._prepare_input(inputs[main_input_name]) if args.include_inputs_for_metrics else None
+#            inputs_mask = self._prepare_input(inputs['attention_mask']) if args.include_inputs_for_metrics else None
+#            tcm_logger.debug(f"type(inputs_decode): {type(inputs_decode)}")
+#            if isinstance(inputs_decode, torch.Tensor):
+#                debug_tensor(f"In evaluation_loop(): inputs_decode", inputs_decode)
+#
+#            # if is_torch_xla_available():
+#            #     xm.mark_step()
+#
+#            # Update containers
+#            if losses is not None:
+#                losses = self.gather_function((losses.repeat(batch_size)))
+#                all_losses.add(losses)
+#            if inputs_decode is not None:
+#                inputs_decode = self.accelerator.pad_across_processes(inputs_decode, dim=1, pad_index=-100)
+#                inputs_decode = self.gather_function((inputs_decode))
+#                if not self.args.batch_eval_metrics or description == "Prediction":
+#                    all_inputs.add(inputs_decode)
+#            if inputs_mask is not None:
+#                inputs_mask = self.accelerator.pad_across_processes(inputs_mask, dim=1, pad_index=0)
+#                inputs_mask = self.gather_function((inputs_mask))
+#                if not self.args.batch_eval_metrics or description == "Prediction":
+#                    all_masks.add(inputs_mask)
+#            if labels is not None:
+#                # Pad labels here, preparing for preprocess_logits_for_metrics in next logits block.
+#                labels = self.accelerator.pad_across_processes(labels, dim=1, pad_index=-100)
+#            if logits is not None:
+#                debug_tensor("Before accelerator.pad_across_processes: logits", logits)
+#                logits = self.accelerator.pad_across_processes(logits, dim=1, pad_index=-100)
+#                if self.preprocess_logits_for_metrics is not None:
+#                    logits = self.preprocess_logits_for_metrics(logits, labels)
+#                debug_tensor("Before gather_function: logits", logits)
+#                logits = self.gather_function((logits))
+#                if not self.args.batch_eval_metrics or description == "Prediction":
+#                    debug_tensor("Add to all_preds: logits", logits)
+#                    all_preds.add(logits)
+#            if labels is not None:
+#                labels = self.gather_function((labels))
+#                if not self.args.batch_eval_metrics or description == "Prediction":
+#                    debug_tensor("Add to all_preds: labels", labels)
+#                    all_labels.add(labels)
+#
+#            self.control = self.callback_handler.on_prediction_step(args, self.state, self.control)
+#
+#            if self.args.batch_eval_metrics:
+#                if self.compute_metrics is not None and logits is not None and labels is not None:
+#                    is_last_step = self.accelerator.gradient_state.end_of_dataloader
+#                    if args.include_inputs_for_metrics:
+#                        metrics = self.compute_metrics(
+#                            EvalPredictionWithMask(predictions=logits, label_ids=labels, inputs=inputs),
+#                            compute_result=is_last_step,
+#                        )
+#                    else:
+#                        metrics = self.compute_metrics(
+#                            EvalPredictionWithMask(predictions=logits, label_ids=labels),
+#                            compute_result=is_last_step,
+#                        )
+#
+#                del losses, logits, labels, inputs
+#                torch.cuda.empty_cache()
+#
+#            # Gather all tensors and put them back on the CPU if we have done enough accumulation steps.
+#            elif args.eval_accumulation_steps is not None and (step + 1) % args.eval_accumulation_steps == 0:
+#                all_losses.to_cpu_and_numpy()
+#                all_preds.to_cpu_and_numpy()
+#                all_labels.to_cpu_and_numpy()
+#                all_inputs.to_cpu_and_numpy()
+#                all_masks.to_cpu_and_numpy()
+#
+#                del losses, logits, labels, inputs
+#                torch.cuda.empty_cache()
+#
+#        # After all calls to `.gather_function`, reset to `gather_for_metrics`:
+#        self.gather_function = self.accelerator.gather_for_metrics
+#        if args.past_index and hasattr(self, "_past"):
+#            # Clean the state at the end of the evaluation loop
+#            delattr(self, "_past")
+#
+#        # Gather all remaining tensors and put them back on the CPU
+#        all_losses = all_losses.get_arrays()
+#        all_preds = all_preds.get_arrays()
+#        all_labels = all_labels.get_arrays()
+#        all_inputs = all_inputs.get_arrays()
+#        all_masks = all_masks.get_arrays()
+#
+#        # Number of samples
+#        if has_length(eval_dataset):
+#            num_samples = len(eval_dataset)
+#        # The instance check is weird and does not actually check for the type, but whether the dataset has the right
+#        # methods. Therefore we need to make sure it also has the attribute.
+#        elif isinstance(eval_dataset, IterableDatasetShard) and getattr(eval_dataset, "num_examples", 0) > 0:
+#            num_samples = eval_dataset.num_examples
+#        else:
+#            if has_length(dataloader):
+#                num_samples = self.num_examples(dataloader)
+#            else:  # both len(dataloader.dataset) and len(dataloader) fail
+#                num_samples = observed_num_examples
+#        if num_samples == 0 and observed_num_examples > 0:
+#            num_samples = observed_num_examples
+#
+#        # Metrics!
+#        if (
+#            self.compute_metrics is not None
+#            and all_preds is not None
+#            and all_labels is not None
+#            and not self.args.batch_eval_metrics
+#        ):
+#            if args.include_inputs_for_metrics:
+#                metrics = self.compute_metrics(
+#                    EvalPredictionWithMask(predictions=all_preds, label_ids=all_labels, inputs=all_inputs, masks=all_masks)
+#                )
+#            else:
+#                metrics = self.compute_metrics(EvalPredictionWithMask(predictions=all_preds, label_ids=all_labels))
+#        elif metrics is None:
+#            metrics = {}
+#
+#        # To be JSON-serializable, we need to remove numpy types or zero-d tensors
+#        metrics = denumpify_detensorize(metrics)
+#
+#        if isinstance(all_losses, list) and all_losses:
+#            metrics[f"{metric_key_prefix}_loss"] = np.concatenate(all_losses).mean().item()
+#        elif isinstance(all_losses, np.ndarray):
+#            metrics[f"{metric_key_prefix}_loss"] = all_losses.mean().item()
+#        if hasattr(self, "jit_compilation_time"):
+#            metrics[f"{metric_key_prefix}_jit_compilation_time"] = self.jit_compilation_time
+#        if hasattr(self, "model_preparation_time"):
+#            metrics[f"{metric_key_prefix}_model_preparation_time"] = self.model_preparation_time
+#
+#        # Prefix all keys with metric_key_prefix + '_'
+#        for key in list(metrics.keys()):
+#            if not key.startswith(f"{metric_key_prefix}_"):
+#                metrics[f"{metric_key_prefix}_{key}"] = metrics.pop(key)
+#
+#        return EvalLoopOutput(predictions=all_preds, label_ids=all_labels, metrics=metrics, num_samples=num_samples)
+#
+#    def prediction_step(
+#        self,
+#        model: nn.Module,
+#        inputs: Dict[str, Union[torch.Tensor, Any]],
+#        prediction_loss_only: bool,
+#        ignore_keys: Optional[List[str]] = None,
+#    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
+#
+#        """
+#        Perform an evaluation step on `model` using `inputs`.
+#
+#        Subclass and override to inject custom behavior.
+#
+#        Args:
+#            model (`nn.Module`):
+#                The model to evaluate.
+#            inputs (`Dict[str, Union[torch.Tensor, Any]]`):
+#                The inputs and targets of the model.
+#
+#                The dictionary will be unpacked before being fed to the model. Most models expect the targets under the
+#                argument `labels`. Check your model's documentation for all accepted arguments.
+#            prediction_loss_only (`bool`):
+#                Whether or not to return the loss only.
+#            ignore_keys (`List[str]`, *optional*):
+#                A list of keys in the output of your model (if it is a dictionary) that should be ignored when
+#                gathering predictions.
+#
+#        Return:
+#            Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]: A tuple with the loss,
+#            logits and labels (each being optional).
+#        """
+#        has_labels = False if len(self.label_names) == 0 else all(inputs.get(k) is not None for k in self.label_names)
+#        # For CLIP-like models capable of returning loss values.
+#        # If `return_loss` is not specified or being `None` in `inputs`, we check if the default value of `return_loss`
+#        # is `True` in `model.forward`.
+#        return_loss = inputs.get("return_loss", None)
+#        if return_loss is None:
+#            return_loss = self.can_return_loss
+#        loss_without_labels = True if len(self.label_names) == 0 and return_loss else False
+#
+#        inputs = self._prepare_inputs(inputs)
+#        if ignore_keys is None:
+#            if hasattr(self.model, "config"):
+#                ignore_keys = getattr(self.model.config, "keys_to_ignore_at_inference", [])
+#            else:
+#                ignore_keys = []
+#
+#        # labels may be popped when computing the loss (label smoothing for instance) so we grab them first.
+#        if has_labels or loss_without_labels:
+#            labels = nested_detach(tuple(inputs.get(name) for name in self.label_names))
+#            if len(labels) == 1:
+#                labels = labels[0]
+#        else:
+#            labels = None
+#
+#        with torch.no_grad():
+#            if False:
+#                pass
+#            else:
+#                if has_labels or loss_without_labels:
+#                    with self.compute_loss_context_manager():
+#                        loss, outputs = self.compute_loss(model, inputs, return_outputs=True)
+#                    loss = loss.mean().detach()
+#
+#                    if isinstance(outputs, dict):
+#                        logits = tuple(v for k, v in outputs.items() if k not in ignore_keys + ["loss"])
+#                    else:
+#                        logits = outputs[1:]
+#                else:
+#                    loss = None
+#                    with self.compute_loss_context_manager():
+#                        outputs = model(**inputs)
+#                    if isinstance(outputs, dict):
+#                        logits = tuple(v for k, v in outputs.items() if k not in ignore_keys)
+#                    else:
+#                        logits = outputs
+#                    # TODO: this needs to be fixed and made cleaner later.
+#                    if self.args.past_index >= 0:
+#                        self._past = outputs[self.args.past_index - 1]
+#
+#        if prediction_loss_only:
+#            return (loss, None, None)
+#
+#        logits = nested_detach(logits)
+#        if len(logits) == 1:
+#            logits = logits[0]
+#        debug_tensor("In prediction_step: logits", logits)
+#        debug_tensor("In prediction_step: labels", labels)
+#        for i in range(labels.shape[1]):
+#            if labels[0, i] == 78191:
+#                tcm_logger.debug(f"Assistant token at position {i}")
+#                break
+#
+#        return (loss, logits, labels)
 
     # def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
     #     """
