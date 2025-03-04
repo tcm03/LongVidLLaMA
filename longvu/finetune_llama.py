@@ -453,7 +453,6 @@ def prepare_multimodal_data(
         im_aux_attention_masks_list,
     )
 
-
 def compute_metrics(eval_pred, tokenizer, compute_result):
     """
     Computes accuracy, precision, recall, and F1-score for the sequence classification task.
