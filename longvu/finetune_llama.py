@@ -466,8 +466,10 @@ def compute_metrics(eval_pred, compute_result):
     dict: A dictionary with metric names as keys and their values.
     """
 
-    preds = torch.from_numpy(eval_pred.predictions)
-    labels = torch.from_numpy(eval_pred.label_ids)
+    # preds = torch.from_numpy(eval_pred.predictions)
+    preds = eval_pred.predictions
+    # labels = torch.from_numpy(eval_pred.label_ids)
+    labels = eval_pred.label_ids
     inputs = eval_pred.inputs
 #    masks = eval_pred.masks
     tcm_logger.info(f"In compute_metrics(): compute_result={compute_result}")
@@ -476,7 +478,7 @@ def compute_metrics(eval_pred, compute_result):
 #    for i, mask in enumerate(masks):
 #        debug_tensor(f"masks[{i}]", mask)
 #    attention_mask = torch.stack([torch.from_numpy(mask) for mask in masks], dim = 0)
-    input_ids = torch.stack([torch.from_numpy(input) for input in inputs], dim = 0)
+    input_ids = torch.stack([input for input in inputs], dim = 0)
     debug_tensor("preds", preds)
     debug_tensor("labels", labels)
 #    debug_tensor("attention_mask", attention_mask)
