@@ -818,7 +818,7 @@ class LLaVATrainer(Trainer):
                     is_last_step = self.accelerator.gradient_state.end_of_dataloader
                     if args.include_inputs_for_metrics:
                         metrics = self.compute_metrics(
-                            EvalPredictionWithMask(predictions=logits, label_ids=labels, inputs=inputs, masks=all_masks),
+                            EvalPredictionWithMask(predictions=logits, label_ids=labels, inputs=inputs, masks=inputs_mask),
                             compute_result=is_last_step,
                         )
                     else:
