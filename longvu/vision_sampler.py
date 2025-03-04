@@ -5,6 +5,8 @@ import torch
 import torch.utils.checkpoint
 from torch import nn
 import logging
+from resource_logging import *
+tcm_logger = logging.getLogger("tcm_logger")
 
 # https://github.com/facebookresearch/mae/blob/efb2a8062c206524e35e47d04501ed4f544c0ae8/util/pos_embed.py#L20
 def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False):
@@ -217,13 +219,15 @@ class MultiKVCrossAttention(nn.Module):
         queries,
         *vision_latents_attention_mask_list,
     ):
-
+        tcm_logger.info("In MultiKVCrossAttention.forward()")
         vision_latents_list = vision_latents_attention_mask_list[: self.num_of_kvs]
         attention_mask_list = vision_latents_attention_mask_list[self.num_of_kvs :]
 
         bsz, q_len, _ = queries.size()
+        tcm_logger.debug(f"In MultiKVCrossAttention.forward(): bsz = {bsz}, q_len = {q_len}")
 
         query_states = self.q_proj(queries)
+        debug_tensor("In MultiKVCrossAttention.forward(): query_states", query_states)
         key_states = torch.cat(
             [
                 getattr(self, "k_proj_{}".format(i))(vision_latents_list[i])
@@ -231,6 +235,7 @@ class MultiKVCrossAttention(nn.Module):
             ],
             dim=1,
         )
+        debug_tensor("In MultiKVCrossAttention.forward(): key_states", key_states)
         value_states = torch.cat(
             [
                 getattr(self, "v_proj_{}".format(i))(vision_latents_list[i])
@@ -238,18 +243,22 @@ class MultiKVCrossAttention(nn.Module):
             ],
             dim=1,
         )
+        debug_tensor("In MultiKVCrossAttention.forward(): value_states", value_states)
 
         v_len = key_states.shape[1]
 
         query_states = query_states.view(
             bsz, q_len, self.num_heads, self.head_dim
         ).transpose(1, 2)
+        debug_tensor("In MultiKVCrossAttention.forward(): query_states.view", query_states)
         key_states = key_states.view(
             bsz, v_len, self.num_heads, self.head_dim
         ).transpose(1, 2)
+        debug_tensor("In MultiKVCrossAttention.forward(): key_states.view", key_states)
         value_states = value_states.view(
             bsz, v_len, self.num_heads, self.head_dim
         ).transpose(1, 2)
+        debug_tensor("In MultiKVCrossAttention.forward(): value_states.view", value_states)
 
         # if kv_weight is not None:
         #     kv_weight = kv_weight.unsqueeze(1).expand(-1, self.num_heads, -1, -1)
@@ -275,6 +284,8 @@ class MultiKVCrossAttention(nn.Module):
             value_states,
             attn_mask=attention_mask,
         )
+        debug_tensor("In MultiKVCrossAttention.forward(): attn_output", attn_output)
+        
         # attn_output = spda(
         #     query_states,
         #     key_states,
@@ -287,6 +298,7 @@ class MultiKVCrossAttention(nn.Module):
         attn_output = attn_output.reshape(bsz, q_len, self.hidden_dim)
 
         attn_output = self.o_proj(attn_output)
+        debug_tensor("In MultiKVCrossAttention.forward(): attn_output after o_proj", attn_output)
 
         return attn_output
 
