@@ -785,8 +785,6 @@ class LLaVATrainer(Trainer):
             if isinstance(inputs_decode, torch.Tensor):
                 debug_tensor(f"In evaluation_loop(): inputs_decode", inputs_decode)
 
-            if is_torch_xla_available():
-                xm.mark_step()
 
             # Update containers
             if losses is not None:
