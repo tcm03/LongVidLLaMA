@@ -460,8 +460,12 @@ class MetricsAccumulator:
         self.preds = []
 
     def update(self, golds, preds):
+        assert len(golds) == len(preds), "require equal labels and prediction arrays"
         self.golds.extend(golds)
         self.preds.extend(preds)
+
+    def length(self):
+        return len(self.golds)
 
     def compute(self):
         accuracy = accuracy_score(self.golds, self.preds)
@@ -580,6 +584,9 @@ def compute_metrics(eval_pred, tokenizer, compute_result):
     #     "f1": f1
     # }
     if compute_result:
+        tcm_logger.debug(f"global number of eval samples={global_metrics_accumulator.length()}")
+        tcm_logger.debug(f"global_metrics_accumulator.golds={global_metrics_accumulator.golds}")
+        tcm_logger.debug(f"global_metrics_accumulator.preds={global_metrics_accumulator.preds}")
         return global_metrics_accumulator.compute()
     else:
         return {}
