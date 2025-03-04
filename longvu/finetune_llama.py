@@ -455,7 +455,7 @@ def prepare_multimodal_data(
 
 
 # def compute_metrics(eval_pred, tokenizer):
-def compute_metrics(eval_pred):
+def compute_metrics(eval_pred, compute_result):
     """
     Computes accuracy, precision, recall, and F1-score for the sequence classification task.
 
@@ -466,21 +466,21 @@ def compute_metrics(eval_pred):
     dict: A dictionary with metric names as keys and their values.
     """
 
-#    preds = torch.from_numpy(eval_pred.predictions)
-#    labels = torch.from_numpy(eval_pred.label_ids)
-#    inputs = eval_pred.inputs
+    preds = torch.from_numpy(eval_pred.predictions)
+    labels = torch.from_numpy(eval_pred.label_ids)
+    inputs = eval_pred.inputs
 #    masks = eval_pred.masks
-#    tcm_logger.info("In compute_metrics()")
-#    for i, input in enumerate(inputs):
-#        debug_tensor(f"inputs[{i}]", input)
+    tcm_logger.info(f"In compute_metrics(): compute_result={compute_result}")
+    for i, input in enumerate(inputs):
+        debug_tensor(f"inputs[{i}]", input)
 #    for i, mask in enumerate(masks):
 #        debug_tensor(f"masks[{i}]", mask)
 #    attention_mask = torch.stack([torch.from_numpy(mask) for mask in masks], dim = 0)
-#    input_ids = torch.stack([torch.from_numpy(input) for input in inputs], dim = 0)
-#    debug_tensor("preds", preds)
-#    debug_tensor("labels", labels)
+    input_ids = torch.stack([torch.from_numpy(input) for input in inputs], dim = 0)
+    debug_tensor("preds", preds)
+    debug_tensor("labels", labels)
 #    debug_tensor("attention_mask", attention_mask)
-#    debug_tensor("input_ids", input_ids)
+    debug_tensor("input_ids", input_ids)
 #
 #    attention_mask = attention_mask.bool()
 #    attention_mask = attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
