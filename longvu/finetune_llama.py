@@ -455,7 +455,7 @@ def prepare_multimodal_data(
 
 
 # def compute_metrics(eval_pred, tokenizer):
-def compute_metrics(eval_pred):
+def compute_metrics(eval_pred, tokenizer, compute_result):
     """
     Computes accuracy, precision, recall, and F1-score for the sequence classification task.
 
@@ -1300,8 +1300,8 @@ def train() -> None:
         model=model,
         tokenizer=tokenizer,
         args=training_args,
-        # compute_metrics=compute_metrics_wTokenizer,
-        compute_metrics=compute_metrics,
+        compute_metrics=compute_metrics_wTokenizer,
+        # compute_metrics=compute_metrics,
         callbacks=callbacks,
         # deepspeed=training_args.deepspeed,
         **data_module,
