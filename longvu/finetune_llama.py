@@ -473,16 +473,17 @@ def compute_metrics(eval_pred, compute_result):
     inputs = eval_pred.inputs
 #    masks = eval_pred.masks
     tcm_logger.info(f"In compute_metrics(): compute_result={compute_result}")
-    for i, input in enumerate(inputs):
-        debug_tensor(f"inputs[{i}]", input)
+    # for i, input in enumerate(inputs):
+    #     debug_tensor(f"inputs[{i}]", input)
+    tcm_logger.debug(f"inputs: {inputs}")
 #    for i, mask in enumerate(masks):
 #        debug_tensor(f"masks[{i}]", mask)
 #    attention_mask = torch.stack([torch.from_numpy(mask) for mask in masks], dim = 0)
-    input_ids = torch.stack([input for input in inputs], dim = 0)
+    # input_ids = torch.stack([input for input in inputs], dim = 0)
     debug_tensor("preds", preds)
     debug_tensor("labels", labels)
 #    debug_tensor("attention_mask", attention_mask)
-    debug_tensor("input_ids", input_ids)
+    # debug_tensor("input_ids", input_ids)
 #
 #    attention_mask = attention_mask.bool()
 #    attention_mask = attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
