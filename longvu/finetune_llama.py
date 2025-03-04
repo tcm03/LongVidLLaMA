@@ -453,6 +453,42 @@ def prepare_multimodal_data(
         im_aux_attention_masks_list,
     )
 
+class MetricsAccumulator:
+
+    def __init__(self):
+        self.golds = []
+        self.preds = []
+
+    def update(self, golds, preds):
+        self.golds.extend(golds)
+        self.preds.extend(preds)
+
+    def compute(self):
+        accuracy = accuracy_score(self.golds, self.preds)
+        prec_w, recall_w, f1_w, _ = precision_recall_fscore_support(
+            self.golds, self.preds, average="weighted"
+        )
+        prec_micro, recall_micro, f1_micro, _ = precision_recall_fscore_support(
+            self.golds, self.preds, average="micro"
+        )
+        prec_macro, recall_macro, f1_macro, _ = precision_recall_fscore_support(
+            self.golds, self.preds, average="macro"
+        )
+        return {
+            "accuracy": accuracy,
+            "precision_weighted": prec_w,
+            "recall_weighted": recall_w,
+            "f1_weighted": f1_w,
+            "precision_micro": prec_micro,
+            "recall_micro": recall_micro,
+            "f1_micro": f1_micro,
+            "precision_macro": prec_macro,
+            "recall_macro": recall_macro,
+            "f1_macro": f1_macro,
+        }
+
+global_metrics_accumulator = MetricsAccumulator()
+
 
 # def compute_metrics(eval_pred, tokenizer):
 def compute_metrics(eval_pred, tokenizer, compute_result):
@@ -529,6 +565,7 @@ def compute_metrics(eval_pred, tokenizer, compute_result):
     # logging.info(f'predictions={predictions}')
     tcm_logger.debug(f"pred_labels={pred_labels}")
     tcm_logger.debug(f"gold_labels={gold_labels}")
+    global_metrics_accumulator.update(gold_labels, pred_labels)
     # Compute accuracy
     # acc = accuracy_score(gold_labels, pred_labels)
     
@@ -542,9 +579,10 @@ def compute_metrics(eval_pred, tokenizer, compute_result):
     #     "recall": recall,
     #     "f1": f1
     # }
-    return {
-        "accuracy": 0.
-    }
+    if compute_result:
+        return global_metrics_accumulator.compute()
+    else:
+        return {}
 
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
