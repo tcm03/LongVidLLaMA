@@ -528,17 +528,20 @@ def compute_metrics(eval_pred, tokenizer, compute_result):
     tcm_logger.debug(f"pred_labels={pred_labels}")
     tcm_logger.debug(f"gold_labels={gold_labels}")
     # Compute accuracy
-    acc = accuracy_score(gold_labels, pred_labels)
+    # acc = accuracy_score(gold_labels, pred_labels)
     
     # Compute precision, recall, and F1-score
-    precision, recall, f1, _ = precision_recall_fscore_support(gold_labels, pred_labels, average='weighted')
+    # precision, recall, f1, _ = precision_recall_fscore_support(gold_labels, pred_labels, average='weighted')
     
     # Return metrics as a dictionary
+    # return {
+    #     "accuracy": acc,
+    #     "precision": precision,
+    #     "recall": recall,
+    #     "f1": f1
+    # }
     return {
-        "accuracy": acc,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1
+        "accuracy": 0.
     }
 
 class LazySupervisedDataset(Dataset):
