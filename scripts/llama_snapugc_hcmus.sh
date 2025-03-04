@@ -23,7 +23,6 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 4 \
-    --batch_eval_metrics True \
     --save_steps 625 \
     --eval_steps 500 \
     --logging_steps 5 \
@@ -59,5 +58,7 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --highres True \
     --drop_threshold 0.75 \
     --label_names labels \
+    --include_inputs_for_metrics True \
+    --batch_eval_metrics True \
     --torch_empty_cache_steps 1 \
     --save_only_model True
