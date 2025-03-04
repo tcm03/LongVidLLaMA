@@ -807,13 +807,15 @@ class LLaVATrainer(Trainer):
                 logits = self.gather_function((logits))
                 if not self.args.batch_eval_metrics or description == "Prediction":
                     debug_tensor("Add to all_preds: logits", logits)
-                    tcm_logger.debug(f"In evaluation_loop(): len(all_preds.tensors): {len(all_preds.tensors)}")
+                    if all_preds.tensors is not None:
+                        tcm_logger.debug(f"In evaluation_loop(): len(all_preds.tensors): {len(all_preds.tensors)}")
                     all_preds.add(logits)
             if labels is not None:
                 labels = self.gather_function((labels))
                 if not self.args.batch_eval_metrics or description == "Prediction":
                     debug_tensor("Add to all_preds: labels", labels)
-                    tcm_logger.debug(f"In evaluation_loop(): len(all_labels.tensors): {len(all_labels.tensors)}")
+                    if all_labels.tensors is not None:
+                        tcm_logger.debug(f"In evaluation_loop(): len(all_labels.tensors): {len(all_labels.tensors)}")
                     all_labels.add(labels)
 
             self.control = self.callback_handler.on_prediction_step(args, self.state, self.control)
