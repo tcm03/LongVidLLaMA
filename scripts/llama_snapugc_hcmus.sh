@@ -1,7 +1,7 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_llama3_2"
-PATH_TO_JSON_TRAIN="/raid/nthuy/SnapUGC/snapugc_60s_4eval_train.json"
-PATH_TO_JSON_VAL="/raid/nthuy/SnapUGC/snapugc_60s_test.json"
+PATH_TO_JSON_TRAIN="/raid/nthuy/SnapUGC/snapugc_mini_train.json"
+PATH_TO_JSON_VAL="/raid/nthuy/SnapUGC/snapugc_mini_test.json"
 PATH_TO_FOLDER="/raid/nthuy/SnapUGC"
 VERSION="llama3"
 
@@ -46,7 +46,7 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --tune_mm_mlp_adapter False \
     --freeze_mm_mlp_adapter False \
     --freeze_backbone True \
-    --fsdp "full_shard auto_wrap" \
+    --fsdp "full_shard auto_wrap offload" \
     --fsdp_transformer_layer_cls_to_wrap 'Dinov2Layer,SiglipEncoderLayer,LlamaDecoderLayer' \
     --gradient_checkpointing True \
     --mm_projector_type sva \
