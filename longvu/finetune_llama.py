@@ -1013,6 +1013,8 @@ def train() -> None:
     
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+    torch.cuda.memory._record_memory_history()
+
     # pyre-fixme[16]: `DataClass` has no attribute `output_model_local_path`.
     training_args.output_dir = model_args.output_model_filename
     # pyre-fixme[16]: `DataClass` has no attribute `local_dir`.
@@ -1314,7 +1316,12 @@ def train() -> None:
 #        trainer.train(resume_from_checkpoint=True)
 #    else:
 #        trainer.train()
+
+    torch.cuda.memory._dump_snapshot(datetime.now().strftime('snapshot_%d_%H%M%S.pickle'))
+
     trainer.train()
+
+    torch.cuda.memory._record_memory_history(enabled=None)
     # pyre-fixme[16]: `LLaVATrainer` has no attribute `save_state`.
     # trainer.evaluate()
     trainer.save_state()
