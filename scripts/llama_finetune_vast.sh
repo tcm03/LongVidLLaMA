@@ -1,11 +1,11 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_llama3_2"
-PATH_TO_JSON_TRAIN="/root/hcmus/EnTube_preprocessing/data/EnTube_50m_train.json"
-PATH_TO_JSON_VAL="/root/hcmus/EnTube_preprocessing/data/EnTube_50m_test.json"
+PATH_TO_JSON_TRAIN="/root/hcmus/EnTube_preprocessing/data_short/EnTube_50m_train_short.json"
+PATH_TO_JSON_VAL="/root/hcmus/EnTube_preprocessing/data_short/EnTube_50m_test_short.json"
 PATH_TO_FOLDER="/root/hcmus/EnTube"
 VERSION="llama3"
 
-CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=1 --nnodes=1 \
+CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=2 --nnodes=1 \
     longvu/finetune_llama.py \
     --output_dir "/tmp/longvu/" \
     --input_model_filename $PREV_STAGE_CHECKPOINT \
@@ -19,10 +19,10 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --bf16 True \
     --log_on_each_node False \
     --logging_dir /tmp/llava/test/ \
-    --num_train_epochs 2 \
+    --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
-    --gradient_accumulation_steps 1 \
+    --gradient_accumulation_steps 4 \
     --save_steps 540 \
     --eval_steps 540 \
     --logging_steps 2 \
@@ -43,9 +43,11 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --group_by_modality_length True \
     --dataloader_num_workers 0 \
     --lazy_preprocess True \
-    --tune_mm_mlp_adapter False \
+    --tune_mm_mlp_adapter True \
     --freeze_mm_mlp_adapter False \
     --freeze_backbone True \
+    --fsdp "full_shard auto_wrap" \
+    --fsdp_transformer_layer_cls_to_wrap 'Dinov2Layer,SiglipEncoderLayer,LlamaDecoderLayer' \
     --gradient_checkpointing True \
     --mm_projector_type sva \
     --image_token_len 144 \
@@ -59,5 +61,5 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --include_inputs_for_metrics True \
     --batch_eval_metrics True \
     --torch_empty_cache_steps 1 \
-    # --save_only_model True
+    --save_only_model True
     # --deepspeed ds_config_2.json
