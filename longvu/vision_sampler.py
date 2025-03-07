@@ -223,21 +223,27 @@ class MultiKVCrossAttention(nn.Module):
 
         bsz, q_len, _ = queries.size()
 
-        query_states = self.q_proj(queries)
+        query_states = self.q_proj(queries) # @tcm here
+        # @tcm: start
+        del queries
+        torch.cuda.empty_cache()
+        # @tcm: end
         key_states = torch.cat(
             [
                 getattr(self, "k_proj_{}".format(i))(vision_latents_list[i])
                 for i in range(self.num_of_kvs)
             ],
             dim=1,
-        )
+        ) # @tcm here
+        torch.cuda.empty_cache()
         value_states = torch.cat(
             [
                 getattr(self, "v_proj_{}".format(i))(vision_latents_list[i])
                 for i in range(self.num_of_kvs)
             ],
             dim=1,
-        )
+        ) # @tcm here
+        torch.cuda.empty_cache()
 
         v_len = key_states.shape[1]
 
@@ -265,9 +271,20 @@ class MultiKVCrossAttention(nn.Module):
         # SDPA with memory-efficient backend is currently (torch==2.1.2) bugged with non-contiguous inputs with custom attn_mask,
         # Reference: https://github.com/pytorch/pytorch/issues/112577.
         if query_states.device.type == "cuda" and attention_mask is not None:
+            # @tcm: start change
+            old_query_states = query_states
             query_states = query_states.contiguous()
+            del old_query_states
+            torch.cuda.empty_cache()
+            old_key_states = key_states
             key_states = key_states.contiguous()
+            del old_key_states
+            torch.cuda.empty_cache()
+            old_value_states = value_states
             value_states = value_states.contiguous()
+            del old_value_states
+            torch.cuda.empty_cache()
+            # @tcm: end change
 
         attn_output = torch.nn.functional.scaled_dot_product_attention(
             query_states,
@@ -275,6 +292,10 @@ class MultiKVCrossAttention(nn.Module):
             value_states,
             attn_mask=attention_mask,
         )
+        # @tcm: start
+        del query_states, key_states, value_states
+        torch.cuda.empty_cache()
+        # @tcm: end
         # attn_output = spda(
         #     query_states,
         #     key_states,
@@ -283,9 +304,13 @@ class MultiKVCrossAttention(nn.Module):
         #     additional_score=kv_weight
         # )
 
+        # @tcm: start change
+        old_attn_output = attn_output
         attn_output = attn_output.transpose(1, 2).contiguous()
+        del old_attn_output
+        torch.cuda.empty_cache()
         attn_output = attn_output.reshape(bsz, q_len, self.hidden_dim)
-
+        # @tcm: end change
         attn_output = self.o_proj(attn_output)
 
         return attn_output
@@ -299,7 +324,7 @@ class MLP(nn.Module):
         self.linear_2 = nn.Linear(d_hidden, d_out, bias=False)
 
     def forward(self, x):
-        return self.linear_2(self.act(self.linear_1(x)))
+        return self.linear_2(self.act(self.linear_1(x))) # tcm here
 
 
 class VisionCrossAttentionLayer(nn.Module):
@@ -350,7 +375,12 @@ class VisionCrossAttentionLayer(nn.Module):
         # logging.info(f'context_feature.dtype = {context_feature.dtype}, self.proj_context.dtype = {next(self.proj_context.parameters()).dtype}')
         context_feature = self.proj_context(context_feature)
         # queries = queries + context_feature
-        queries = torch.cat([queries, context_feature], -1)
+        # @tcm: start change
+        old_queries = queries
+        queries = torch.cat([queries, context_feature], -1) # @tcm here
+        del old_queries, context_feature
+        torch.cuda.empty_cache()
+        # @tcm: end change
 
         # if self.num_of_kvs > 1:
         #     kv_weight = self.weight_mlp(queries) # B * 1 * num_tower
@@ -388,12 +418,21 @@ class VisionCrossAttentionLayer(nn.Module):
         # Cross Attention
         attention_output = self.cross_attn(
             queries, *vision_latents_pos_list, *attention_mask_list_reshaped
-        )
+        ) # @tcm here
 
         # attention_output = (attention_output * combination_weight).sum(2)
         queries = queries + attention_output
+        # @tcm: start
+        del attention_output
+        torch.cuda.empty_cache()
+        # @tcm: end
 
-        queries = self.norm(queries)
+        # @tcm: start change
+        old_queries = queries
+        queries = self.norm(queries) # @tcm here
+        del old_queries
+        torch.cuda.empty_cache()
+        # @tcm: end change
 
         queries = self.proj_out(queries)
 

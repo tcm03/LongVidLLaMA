@@ -285,6 +285,7 @@ class LLaVATrainer(Trainer):
         **kwargs,
     ) -> None:
         self.train_dataloader = train_dataloader
+        self.snapshot_counter = 0
         self.deepspeed = deepspeed,
         super().__init__(*args, **kwargs)
 

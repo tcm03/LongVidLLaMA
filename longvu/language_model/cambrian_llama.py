@@ -217,15 +217,27 @@ class CambrianLlamaModel(CambrianMetaModel, LlamaModel):
                 )
 
             hidden_states = layer_outputs[0]
-
+            
             if use_cache:
                 next_decoder_cache = layer_outputs[2 if output_attentions else 1]
 
             if output_attentions:
                 all_self_attns += (layer_outputs[1],)
 
+            # @tcm: start
+            del layer_outputs
+            torch.cuda.empty_cache()
+            # @tcm: end
+
         # pyre-fixme[16]: `CambrianLlamaModel` has no attribute `norm`.
+        # @tcm: start
+        old = hidden_states
+        # @tcm: end
         hidden_states = self.norm(hidden_states)
+        # @tcm: start
+        del old
+        torch.cuda.empty_cache()
+        # @tcm: end
 
         # add hidden states from the last decoder layer
         if output_hidden_states:
