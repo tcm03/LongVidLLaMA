@@ -1,6 +1,6 @@
 # pyre-strict
 import os
-import datetime
+from datetime import datetime
 from typing import Dict, List, Optional, Union, Any, Tuple
 
 import torch
@@ -284,6 +284,7 @@ class LLaVATrainer(Trainer):
         # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
+        self.snapshot_counter = 0
         self.train_dataloader = train_dataloader
         self.deepspeed = deepspeed,
         super().__init__(*args, **kwargs)
@@ -937,16 +938,17 @@ class LLaVATrainer(Trainer):
             self.args.torch_empty_cache_steps is not None
             and self.state.global_step % self.args.torch_empty_cache_steps == 0
         ):
-            if is_xpu_available():
-                torch.xpu.empty_cache()
-            elif is_mlu_available():
-                torch.mlu.empty_cache()
-            elif is_npu_available():
-                torch.npu.empty_cache()
-            elif is_torch_version(">=", "2.0") and is_mps_available():
-                torch.mps.empty_cache()
-            else:
-                torch.cuda.empty_cache()
+#            if is_xpu_available():
+#                torch.xpu.empty_cache()
+#            elif is_mlu_available():
+#                torch.mlu.empty_cache()
+#            elif is_npu_available():
+#                torch.npu.empty_cache()
+#            elif is_torch_version(">=", "2.0") and is_mps_available():
+#                torch.mps.empty_cache()
+#            else:
+#                torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
 
         kwargs = {}
 
@@ -964,7 +966,9 @@ class LLaVATrainer(Trainer):
         else:
             self.accelerator.backward(loss, **kwargs)
 
-        torch.cuda.memory._dump_snapshot(datetime.now().strftime('snapshot_%d_%H%M%S.pickle'))
+        cur_rank = int(os.environ.get('RANK', 0))
+        torch.cuda.memory._dump_snapshot(datetime.now().strftime(f'/media02/nthuy/pickle/rank_{cur_rank}_trainstep_{self.snapshot_counter}_%d_%H%M%S.pickle'))
+        self.snapshot_counter += 1
 
         return loss.detach() / self.args.gradient_accumulation_steps
 

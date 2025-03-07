@@ -1317,7 +1317,8 @@ def train() -> None:
 #    else:
 #        trainer.train()
 
-    torch.cuda.memory._dump_snapshot(datetime.now().strftime('snapshot_%d_%H%M%S.pickle'))
+    cur_rank = int(os.environ.get('RANK', 0))
+    torch.cuda.memory._dump_snapshot(datetime.datetime.now().strftime(f'/media02/nthuy/pickle/rank_{cur_rank}_beforetrain_%d_%H%M%S.pickle'))
 
     trainer.train()
 
