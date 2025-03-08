@@ -1,7 +1,7 @@
 
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_llama3_2"
-PATH_TO_JSON_TRAIN="/raid/nthuy/SnapUGC/snapugc_30s_train_short.json"
-PATH_TO_JSON_VAL="/raid/nthuy/SnapUGC/snapugc_30s_test_short.json"
+PATH_TO_JSON_TRAIN="/raid/nthuy/SnapUGC/snapugc_60s_4eval_train.json"
+PATH_TO_JSON_VAL="/raid/nthuy/SnapUGC/snapugc_30s_test.json"
 PATH_TO_FOLDER="/raid/nthuy/SnapUGC"
 VERSION="llama3"
 
