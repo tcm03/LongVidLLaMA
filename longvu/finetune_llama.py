@@ -453,6 +453,49 @@ def prepare_multimodal_data(
         im_aux_attention_masks_list,
     )
 
+class MetricsAccumulator:
+
+    def __init__(self):
+        self.golds = []
+        self.preds = []
+
+    def update(self, golds, preds):
+        assert len(golds) == len(preds), "require equal labels and prediction arrays"
+        self.golds.extend(golds)
+        self.preds.extend(preds)
+
+    def reset(self):
+        self.golds = []
+        self.preds = []
+
+    def length(self):
+        return len(self.golds)
+
+    def compute(self):
+        accuracy = accuracy_score(self.golds, self.preds)
+        prec_w, recall_w, f1_w, _ = precision_recall_fscore_support(
+            self.golds, self.preds, average="weighted"
+        )
+        prec_micro, recall_micro, f1_micro, _ = precision_recall_fscore_support(
+            self.golds, self.preds, average="micro"
+        )
+        prec_macro, recall_macro, f1_macro, _ = precision_recall_fscore_support(
+            self.golds, self.preds, average="macro"
+        )
+        return {
+            "accuracy": accuracy,
+            "precision_weighted": prec_w,
+            "recall_weighted": recall_w,
+            "f1_weighted": f1_w,
+            "precision_micro": prec_micro,
+            "recall_micro": recall_micro,
+            "f1_micro": f1_micro,
+            "precision_macro": prec_macro,
+            "recall_macro": recall_macro,
+            "f1_macro": f1_macro,
+        }
+
+global_metrics_accumulator = MetricsAccumulator()
 
 # def compute_metrics(eval_pred, tokenizer):
 def compute_metrics(eval_pred, tokenizer, compute_result):
@@ -466,79 +509,92 @@ def compute_metrics(eval_pred, tokenizer, compute_result):
     dict: A dictionary with metric names as keys and their values.
     """
 
-#    preds = torch.from_numpy(eval_pred.predictions)
-#    labels = torch.from_numpy(eval_pred.label_ids)
-#    inputs = eval_pred.inputs
-#    masks = eval_pred.masks
-#    tcm_logger.info("In compute_metrics()")
-#    for i, input in enumerate(inputs):
-#        debug_tensor(f"inputs[{i}]", input)
-#    for i, mask in enumerate(masks):
-#        debug_tensor(f"masks[{i}]", mask)
-#    attention_mask = torch.stack([torch.from_numpy(mask) for mask in masks], dim = 0)
-#    input_ids = torch.stack([torch.from_numpy(input) for input in inputs], dim = 0)
-#    debug_tensor("preds", preds)
-#    debug_tensor("labels", labels)
-#    debug_tensor("attention_mask", attention_mask)
-#    debug_tensor("input_ids", input_ids)
-#
-#    attention_mask = attention_mask.bool()
-#    attention_mask = attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
-#    labels = [
-#        cur_labels[cur_attention_mask]
-#        for cur_labels, cur_attention_mask in zip(labels, attention_mask)
-#    ]
-#    labels = pad_sequence(labels, batch_first = True, padding_value = IGNORE_INDEX)
-#
-#    assert preds.shape[0] == labels.shape[0], "batch size must be the same"
-#    batch_size = labels.shape[0]
-#    pred_labels = []
-#    gold_labels = []
-#    for i in range(batch_size):
-#        output_range = [-1, -1]
-#        for j in range(labels.shape[1]):
-#            if labels[i, j] == 78191:
-#                assert labels[i, j-1] == 128006 and labels[i, j+1] == 128007, "assistant token must be surrounded by start and end tokens"
-#                output_range[0] = j+1
-#        for j in range(output_range[0], labels.shape[1]):
-#            if labels[i, j] == 128009:
-#                output_range[1] = j
-#                break
-#        tcm_logger.debug(f"batch {i}: output_range={output_range}")
-#        cur_logits = preds[i, output_range[0]:output_range[1], :].unsqueeze(0)
-#        cur_outputs = cur_logits.argmax(dim = -1)
-#        tcm_logger.debug(f"batch {i}: cur_outputs={cur_outputs}")
-#        cur_labels = labels[i, output_range[0]:output_range[1]].unsqueeze(0)
-#        decoded_outputs = tokenizer.batch_decode(cur_outputs, skip_special_tokens=True)
-#        tcm_logger.debug(f"batch {i}: decoded_outputs={decoded_outputs}")
-#        decoded_labels = tokenizer.batch_decode(cur_labels, skip_special_tokens=True)
-#        tcm_logger.debug(f"batch {i}: decoded_labels={decoded_labels}")
-#        pred_label = extract_engagement_label(decoded_outputs[0])
-#        gold_label = extract_engagement_label(decoded_labels[0])
-#        pred_labels.append(pred_label)
-#        gold_labels.append(gold_label)
-#
-#    # # Get predicted class by taking the argmax of logits
-#    # predictions = logits.argmax(axis=-1)
-#    # logging.info(f'predictions={predictions}')
-#    tcm_logger.debug(f"pred_labels={pred_labels}")
-#    tcm_logger.debug(f"gold_labels={gold_labels}")
-#    # Compute accuracy
-#    acc = accuracy_score(gold_labels, pred_labels)
-#    
-#    # Compute precision, recall, and F1-score
-#    precision, recall, f1, _ = precision_recall_fscore_support(gold_labels, pred_labels, average='weighted')
-#    
-#    # Return metrics as a dictionary
-#    return {
-#        "accuracy": acc,
-#        "precision": precision,
-#        "recall": recall,
-#        "f1": f1
-#    }
-    return {
-        "accuracy": 0.0
-    }
+    preds = eval_pred.predictions
+    if isinstance(preds, np.ndarray):
+        preds = torch.from_numpy(preds)
+    labels = eval_pred.label_ids
+    if isinstance(labels, np.ndarray):
+        labels = torch.from_numpy(labels)
+    inputs = eval_pred.inputs
+    if isinstance(inputs, dict):
+        inputs = inputs["input_ids"]
+    masks = eval_pred.masks
+    tcm_logger.info("In compute_metrics()")
+    for i, input in enumerate(inputs):
+        debug_tensor(f"inputs[{i}]", input)
+    for i, mask in enumerate(masks):
+        debug_tensor(f"masks[{i}]", mask)
+    attention_mask = torch.stack([mask if isinstance(mask, torch.Tensor) else torch.from_numpy(mask) for mask in masks], dim = 0)
+    input_ids = torch.stack([input if isinstance(input, torch.Tensor) else torch.from_numpy(input) for input in inputs], dim = 0)
+    debug_tensor("preds", preds)
+    debug_tensor("labels", labels)
+    debug_tensor("attention_mask", attention_mask)
+    debug_tensor("input_ids", input_ids)
+
+    attention_mask = attention_mask.bool()
+    attention_mask = attention_mask | (input_ids == IMAGE_TOKEN_INDEX)
+    labels = [
+        cur_labels[cur_attention_mask]
+        for cur_labels, cur_attention_mask in zip(labels, attention_mask)
+    ]
+    labels = pad_sequence(labels, batch_first = True, padding_value = IGNORE_INDEX)
+
+    assert preds.shape[0] == labels.shape[0], "batch size must be the same"
+    batch_size = labels.shape[0]
+    pred_labels = []
+    gold_labels = []
+    for i in range(batch_size):
+        output_range = [-1, -1]
+        for j in range(labels.shape[1]):
+            if labels[i, j] == 78191:
+                assert labels[i, j-1] == 128006 and labels[i, j+1] == 128007, "assistant token must be surrounded by start and end tokens"
+                output_range[0] = j+1
+        for j in range(output_range[0], labels.shape[1]):
+            if labels[i, j] == 128009:
+                output_range[1] = j
+                break
+        tcm_logger.debug(f"batch {i}: output_range={output_range}")
+        cur_logits = preds[i, output_range[0]:output_range[1], :].unsqueeze(0)
+        cur_outputs = cur_logits.argmax(dim = -1)
+        tcm_logger.debug(f"batch {i}: cur_outputs={cur_outputs}")
+        cur_labels = labels[i, output_range[0]:output_range[1]].unsqueeze(0)
+        decoded_outputs = tokenizer.batch_decode(cur_outputs, skip_special_tokens=True)
+        tcm_logger.debug(f"batch {i}: decoded_outputs={decoded_outputs}")
+        decoded_labels = tokenizer.batch_decode(cur_labels, skip_special_tokens=True)
+        tcm_logger.debug(f"batch {i}: decoded_labels={decoded_labels}")
+        pred_label = extract_engagement_label(decoded_outputs[0])
+        gold_label = extract_engagement_label(decoded_labels[0])
+        pred_labels.append(pred_label)
+        gold_labels.append(gold_label)
+
+    # # Get predicted class by taking the argmax of logits
+    # predictions = logits.argmax(axis=-1)
+    # logging.info(f'predictions={predictions}')
+    tcm_logger.debug(f"pred_labels={pred_labels}")
+    tcm_logger.debug(f"gold_labels={gold_labels}")
+    global_metrics_accumulator.update(gold_labels, pred_labels)
+    # Compute accuracy
+    # acc = accuracy_score(gold_labels, pred_labels)
+    
+    # Compute precision, recall, and F1-score
+    # precision, recall, f1, _ = precision_recall_fscore_support(gold_labels, pred_labels, average='weighted')
+    
+    # Return metrics as a dictionary
+    # return {
+    #     "accuracy": acc,
+    #     "precision": precision,
+    #     "recall": recall,
+    #     "f1": f1
+    # }
+    if compute_result:
+        tcm_logger.debug(f"global number of eval samples={global_metrics_accumulator.length()}")
+        tcm_logger.debug(f"global_metrics_accumulator.golds={global_metrics_accumulator.golds}")
+        tcm_logger.debug(f"global_metrics_accumulator.preds={global_metrics_accumulator.preds}")
+        result = global_metrics_accumulator.compute()
+        global_metrics_accumulator.reset()
+        return result
+    else:
+        return {}
 
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
@@ -1243,14 +1299,12 @@ def train() -> None:
         data_args.image_token_len = model_args.image_token_len
         model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
 
-    total_params = sum(p.numel() for p in model.get_model().parameters())
+    total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(
-        p.numel() for p in model.get_model().parameters() if p.requires_grad
+        p.numel() for p in model.parameters() if p.requires_grad
     )
-    head_params = sum(p.numel() for p in model.lm_head.parameters())
     tcm_logger.info(f'Total params: {total_params}')
     tcm_logger.info(f'Trainable params: {trainable_params}')
-    tcm_logger.info(f'LM head params: {head_params}')
 
     if training_args.bf16:
         model.to(torch.bfloat16)
