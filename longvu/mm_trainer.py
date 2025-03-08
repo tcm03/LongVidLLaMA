@@ -968,7 +968,7 @@ class LLaVATrainer(Trainer):
             self.accelerator.backward(loss, **kwargs)
 
         cur_rank = int(os.environ.get('RANK', 0))
-        torch.cuda.memory._dump_snapshot(datetime.now().strftime(f'/media02/nthuy/pickle/rank_{cur_rank}_trainstep_{self.snapshot_counter}_%d_%H%M%S.pickle'))
+        # torch.cuda.memory._dump_snapshot(datetime.now().strftime(f'/media02/nthuy/pickle/rank_{cur_rank}_trainstep_{self.snapshot_counter}_%d_%H%M%S.pickle'))
         self.snapshot_counter += 1
 
         return loss.detach() / self.args.gradient_accumulation_steps
