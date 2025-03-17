@@ -1,7 +1,6 @@
-
 PREV_STAGE_CHECKPOINT="./checkpoints/longvu_llama3_2"
-PATH_TO_JSON_TRAIN="/raid/nthuy/SnapUGC/snapugc_60s_4eval_train.json"
-PATH_TO_JSON_VAL="/raid/nthuy/SnapUGC/snapugc_30s_test.json"
+PATH_TO_JSON_TRAIN="/raid/nthuy/SnapUGC/snapugc_30s_train_short.json"
+PATH_TO_JSON_VAL="/raid/nthuy/SnapUGC/snapugc_30s_test_short.json"
 PATH_TO_FOLDER="/raid/nthuy/SnapUGC"
 VERSION="llama3"
 
@@ -19,18 +18,18 @@ CUDA_LAUNCH_BLOCKING=1 TORCH_DISTRIBUTED_DEBUG=DETAIL torchrun --nproc_per_node=
     --bf16 True \
     --log_on_each_node False \
     --logging_dir /tmp/llava/test/ \
-    --num_train_epochs 1 \
+    --num_train_epochs 2 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
-    --gradient_accumulation_steps 4 \
-    --save_steps 625 \
+    --gradient_accumulation_steps 8 \
+    --save_steps 312 \
     --eval_steps 500 \
-    --logging_steps 5 \
+    --logging_steps 10 \
     --eval_strategy "epoch" \
     --save_strategy "steps" \
     --report_to "tensorboard" \
     --save_total_limit 1 \
-    --learning_rate 4.6e-6 \
+    --learning_rate 3e-6 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
