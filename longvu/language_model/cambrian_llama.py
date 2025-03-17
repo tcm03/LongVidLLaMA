@@ -217,6 +217,7 @@ class CambrianLlamaModel(CambrianMetaModel, LlamaModel):
                 )
 
             hidden_states = layer_outputs[0]
+            debug_tensor(f"At decoder layer {i}: hidden_states", hidden_states)
             
             if use_cache:
                 next_decoder_cache = layer_outputs[2 if output_attentions else 1]
