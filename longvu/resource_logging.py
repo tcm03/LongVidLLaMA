@@ -29,6 +29,7 @@ def debug_tensor(prefix: str, tensor: Union[np.ndarray, torch.Tensor]):
     # Identify the caller frame within the project directory
     caller_filename = "Unknown"
     caller_lineno = "Unknown"
+    project_py_files = get_project_py_files()
     stack = inspect.stack()
     for frame in stack:
         try:
